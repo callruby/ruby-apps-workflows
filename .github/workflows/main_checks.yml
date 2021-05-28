@@ -1,0 +1,47 @@
+on:
+  push:
+    branches: 
+      - dev/*
+      - develop/*
+      - feature*
+name: Development branch checks
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                      
+    - name: (GLOBAL) Debug
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+            
+    - name: Get short SHA
+      id: slug
+      run: |
+        echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
+        echo ${GITHUB_SHA} | cut -c1-7
+        
+    - name: (DEV) Build, Test Image
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        echo "Building Docker Image"
+        echo "===================================="
+        docker build -t check${IMAGE_TAG} .
+        docker rmi -f check${IMAGE_TAG}
+        
+    - name: Checkout code
+      uses: actions/checkout@v2
