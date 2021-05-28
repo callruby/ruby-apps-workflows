@@ -1,0 +1,36 @@
+name: Workflow Sync
+
+on:
+  push:
+    branches:
+      - master
+env:
+  DRY_RUN: false
+  REPOSITORIES: |
+    callruby/ruby-apps-code-1@dev
+    callruby/ruby-apps-code-1@develop
+    callruby/ruby-apps-code-2@dev
+    callruby/ruby-apps-code-2@develop
+  
+  WORKFLOW_FILES: |
+    main.yml=.github/workflows/main.yml
+    main_checks.yml=.github/workflows/main_checks.yml
+    main_pr_closed.yaml=.github/workflows/main_pr_closed.yaml
+    main_pr_open.yml=.github/workflows/main_pr_open.yml
+    
+jobs:
+  Github_Workflow_Sync:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
+    steps:
+      - name: Fetching Local Repository
+        uses: actions/checkout@master
+      - name: Running Workflow Sync
+        uses: varunsridharan/action-github-workflow-sync@main
+        with:
+          DRY_RUN: ${{ env.DRY_RUN }}
+          REPOSITORIES: ${{ env.REPOSITORIES }}
+          WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          PULL_REQUEST: true
+          AUTO_CREATE_NEW_BRANCH: false
