@@ -20,8 +20,8 @@ env:
     
 jobs:
   Github_Workflow_Sync:
-    runs-on: self-hosted
-    #runs-on: ubuntu-latest
+    #runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Fetching Local Repository
         uses: actions/checkout@master
