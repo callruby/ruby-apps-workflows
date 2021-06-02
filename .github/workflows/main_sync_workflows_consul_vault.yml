@@ -10,7 +10,7 @@ env:
     callruby/ruby-apps-consul-vault@master
   
   WORKFLOW_FILES: |
-    terraform_consul_vault.yml=.github/workflows/terraform_consul_vault.yml
+    terraform_consul_vault.yml=terraform_consul_vault.yml
     
 jobs:
   Github_Workflow_Sync:
