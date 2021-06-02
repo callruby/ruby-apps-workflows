@@ -11,7 +11,6 @@ env:
   
   WORKFLOW_FILES: |
     terraform_consul_vault.yml=.github/workflows/terraform_consul_vault.yml
-ml
     
 jobs:
   Github_Workflow_Sync:
