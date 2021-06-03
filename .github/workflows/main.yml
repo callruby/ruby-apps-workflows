@@ -7,10 +7,11 @@ name: Create Tag & Release After Dev Deploy
 
 env:
   REPOSITORY: "ruby-apps-deploy"
+  AWS_DEFAULT_REGION: "us-west-1"
 jobs:
   build:
     runs-on: self-hosted
-    #runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
     steps:
     - uses: actions/checkout@v2.0.0
 
@@ -29,16 +30,39 @@ jobs:
         path: ${{env.REPOSITORY}}
         ref: 'master'
                   
-    - name: (GLOBAL) Debug
+    - name: (GLOBAL) Configure Service name.
       run: |
         echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
-        
-    - name: (GLOBAL) Configure AWS credentials
+   #Comment if it has to be run on a public Agent
+    - name: (GLOBAL) Import Ci/Cd AWS Credentials from Vault
+      uses: hashicorp/vault-action@v2.2.0
+      id: secrets
+      with:
+        url: http://vault-internal.vault.svc.cluster.local:8200
+        token: ${{ secrets.VAULT_TOKEN }}
+        #caCertificate: ${{ secrets.VAULTCA }}
+        secrets: |
+           internal/cicd/aws/secret_key key ;
+           internal/cicd/aws/access_key key ;
+           internal/cicd/aws/aws_region key ;
+       #internal/cicd/aws/aws_region key #| AWS_DEFAULT_REGION ;
+   
+   #Comment if it has to be run on a public Agent 
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-access-key-id: ${{ steps.secrets.outputs.secret_key }}
+        aws-secret-access-key: ${{ steps.secrets.outputs.access_key }}
         aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        #aws-region: ${{ steps.secrets.outputs.aws_region }}
+    
+    #Uncomment if it has to be run on a public Agent
+    #- name: (GLOBAL) Configure AWS credentials
+      #uses: aws-actions/configure-aws-credentials@v1
+      #with:
+        #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
         
     - name: Get short SHA
       id: slug
@@ -50,7 +74,7 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1      
         
-    - name: (DEV) Build, Test, Tag, Push and Deploy to EKS
+    - name: (DEV) Build, Test, Tag, Push.
       id: Deploy
       run: |
         echo "===================================="
@@ -78,7 +102,7 @@ jobs:
 
     - uses: imranismail/setup-kustomize@v1
     
-    - name: (DEV) Update Tag
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
       run: |
         echo "===================================="
