@@ -40,7 +40,7 @@ jobs:
         echo "===================================="
         echo "Building Docker Image"
         echo "===================================="
-        docker build -t check${IMAGE_TAG}
+        docker build -t check${IMAGE_TAG} .
         echo "===================================="
         echo "Removing Docker Image"
         echo "===================================="
