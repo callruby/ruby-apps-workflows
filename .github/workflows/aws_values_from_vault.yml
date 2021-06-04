@@ -1,0 +1,49 @@
+on:
+  push:
+    branches: 
+      - dev
+ 
+name: Obtain Values from Vault
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+                  
+    - name: (GLOBAL) Import Ci/Cd AWS Credentials from Vault
+      uses: hashicorp/vault-action@v2.2.0
+      id: secrets
+      with:
+        url: http://vault-internal.vault.svc.cluster.local:8200
+        token: ${{ secrets.VAULT_TOKEN }}
+        #caCertificate: ${{ secrets.VAULTCA }}
+        secrets: |
+           internal/cicd/aws/secret_key key ;
+           internal/cicd/aws/access_key key ;
+           internal/cicd/aws/aws_region key ;
+          #internal/cicd/aws/aws_region key #| AWS_DEFAULT_REGION ;
+   
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ steps.secrets.outputs.secret_key }}
+        aws-secret-access-key: ${{ steps.secrets.outputs.access_key }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        #aws-region: ${{ steps.secrets.outputs.aws_region }}
+    
