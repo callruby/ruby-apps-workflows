@@ -1,0 +1,113 @@
+on:
+  push:
+    branches: 
+      - master
+ 
+# https://github.com/hashicorp/terraform-github-actions/blob/master/examples/arguments.md
+name: 'TerraformDeploy'
+
+env:
+  TF_VERSION: "0.13.6"
+  REPOSITORY: "blueprint-consul-vault"  
+  
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    #container:
+      #image: ubuntu:latest
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        #run: echo "jo"
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  terraform:
+    name: 'Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+    #container:
+      #image: ubuntu:latest
+    #defaults:
+      #run:
+        #shell: bash
+  
+    steps:
+
+    - name: (GLOBAL) Define variables
+      id: Variables
+      run: |	  
+        echo "CONSUL_HTTP_TOKEN=${{secrets.CONSUL_HTTP_TOKEN}}" >> $GITHUB_ENV
+        echo "VAULT_TOKEN=${{secrets.VAULT_TOKEN}}" >> $GITHUB_ENV
+        
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+        
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+    
+    - name: 'Terraform Init'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'init'
+        tf_actions_working_dir: '.'
+
+    - name: .terraform permissions
+      run: |
+        ls -la
+        pwd
+        sudo chown -R runner:runner .terraform
+        
+    - name: 'Terraform Plan'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'plan'
+        tf_actions_working_dir: '.'
+
+    - name: 'Terraform Apply'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'apply'
+        tf_actions_working_dir: '.'
+
+    - name: 'Terraform Output'
+      id: terraform
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'output'
+        tf_actions_working_dir: '.'
+       
+    #- name: 'Use Terraform Output'
+    #  run: echo ${{ steps.terraform.outputs.tf_actions_output  }}
+    #- name: 'Pull specific database name from outputs'
+    #  run: |
+    #      apt-get install jq
+    #      DBNAME=$(echo ${{ steps.terraform.outputs.tf_actions_output }} | jq -r '.database.value.name')
+    #      echo $DBNAME
+
+      # On push to master, build or change infrastructure according to Terraform configuration files
+      # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
+    #- name: Terraform Apply
+    #  if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    #  run: terraform apply -auto-approve
+    #  working_directory: 'deploy'
