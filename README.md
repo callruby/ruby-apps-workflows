@@ -1,8 +1,6 @@
 # Workflows
 
-Where the workflows of all services are updated.
-
-Every time that a change is made on master a workflows runs that basically open PR's on the backend repositories to update the workflow files.
+Where the workflows & Dockerfile and start.sh files of all services are.
 
 
 PAT ( Personal Access Token is needed ) github variables has to be set for Github Actions.
@@ -100,6 +98,8 @@ See .github/workflows/main_sync_APPLICATION_NAME.yml
 That's the place to select the workflow files that has to be synced
 
 
-For updating the Dockerfile or confd/start.sh files for each service, the deployment has to be made manually from Actions.
 
+## For updating the Dockerfile or confd/start.sh files for each service, the deployment has to be made manually from Actions.
+
+Be Aware of this .
 
