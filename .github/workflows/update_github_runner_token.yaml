@@ -1,0 +1,28 @@
+name: Update automatically the github runner token
+on:
+  schedule:
+  - cron: '0,15,30,45 * * * *'
+ 
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                                             
+    - name: Obtain & Update Github Runner Token
+      id: Deploy
+      run: |
+        echo "===================================="
+        ls -la
+        chmod +x github/refresh_github_token.sh 
+        github/refresh_github_token.sh ${{ secrets.PAT }}
+        
+    - name: Checkout code
+      uses: actions/checkout@v2

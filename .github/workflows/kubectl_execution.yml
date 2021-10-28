@@ -1,0 +1,17 @@
+name: Kubectl Get Service
+on:
+  push:
+    branches: [ dev ]
+jobs:
+  build:
+    env:
+        KUBECONFIG: '${{ github.workspace }}/.kube/gh-kubeconfig'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - run: |
+        mkdir -p '${{ github.workspace }}/.kube' \
+          && echo '${{ secrets.SHARED_GITHUB_K8S_KUBECONFIG }}' | base64 -d > $KUBECONFIG
+
+    - run: 'kubectl get svc -n development-apps'

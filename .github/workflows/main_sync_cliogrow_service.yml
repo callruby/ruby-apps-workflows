@@ -1,0 +1,35 @@
+name: cliogrow Service Workflow Sync
+
+on: [workflow_dispatch]
+env:
+  DRY_RUN: false
+  REPOSITORIES: |
+    callruby/cliogrow-service@release
+    
+  WORKFLOW_FILES: |
+    Dockerfile-cliogrow-service=Dockerfile
+    #start-cliogrow-service.sh=Ruby.Microservices.Partner.ClioGrow/confd/start.sh
+    start-cliogrow-service-original.sh=Ruby.Microservices.Partner.ClioGrow/confd/start.sh
+    main.yml=main.yml
+    main_pr_closed.yaml=main_pr_closed.yaml
+    main_pr_open.yml=main_pr_open.yml
+    clean_workflows.yaml=clean_workflows.yaml
+    issue_comments.yaml=issue_comments.yaml
+    main_manual.yaml=main_manual.yaml    
+        
+jobs:
+  Github_Workflow_Sync:
+    #runs-on: self-hosted
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetching Local Repository
+        uses: actions/checkout@master
+      - name: Running Workflow Sync
+        uses: varunsridharan/action-github-workflow-sync@main
+        with:
+          DRY_RUN: ${{ env.DRY_RUN }}
+          REPOSITORIES: ${{ env.REPOSITORIES }}
+          WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          PULL_REQUEST: true
+          AUTO_CREATE_NEW_BRANCH: false

@@ -1,0 +1,40 @@
+FROM node:10.18.1-alpine3.9 as builder
+
+# Set a working directory
+WORKDIR /usr/src/app
+
+# Install Node.js dependencies
+COPY package.json yarn.lock ./
+RUN yarn install --no-cache --frozen-lockfile --production
+
+RUN yarn add @angular-devkit/build-angular@0.900.1 --dev
+RUN yarn add @angular/cli@9.0.1
+
+#Add timezone information for looking up information
+RUN apk add --no-cache tzdata
+
+COPY . .
+## Rebuild sass for linux
+RUN npm rebuild node-sass
+## Build the angular app in production mode and store the artifacts in dist folder
+RUN $(yarn bin)/ng build --prod
+### STAGE 2: Setup ###
+FROM nginx:1.13.3-alpine
+## Copy our default nginx config
+COPY nginx/default.conf /etc/nginx/conf.d/
+## Remove default nginx website
+RUN rm -rf /usr/share/nginx/html/*
+
+## From 'builder' stage copy over the artifacts in dist folder to default nginx public folder
+COPY --from=builder /usr/src/app/dist/force-frontend /usr/share/nginx/html
+
+## Setup for Consul
+ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
+RUN chmod +x /usr/local/bin/confd
+
+COPY confd /etc/confd
+RUN apk add dos2unix --update-cache --repository http://dl-3.alpinelinux.org/alpine/edge/community/ --allow-untrusted
+RUN find /etc/confd -type f | xargs dos2unix && apk --purge del dos2unix
+RUN chmod +x /etc/confd/start.sh
+
+ENTRYPOINT ["/etc/confd/start.sh"]

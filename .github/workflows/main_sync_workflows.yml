@@ -1,0 +1,72 @@
+name: Workflow Sync
+
+on: [workflow_dispatch]
+#  push:
+#    branches:
+#      - master
+env:
+  REPOSITORIES: |
+    callruby/ruby-apps-code-1@dev
+    callruby/ruby-apps-code-1@develop
+    callruby/ruby-apps-code-2@dev
+    callruby/ruby-apps-code-2@develop
+    callruby/account-service@dev
+    callruby/activity-service@dev
+    callruby/backsync-service@dev
+    callruby/callcontrol-service@dev
+    callruby/cic-webapi@dev
+    callruby/clio-service@dev
+    callruby/cliogrow-service@dev
+    callruby/customer-api@dev
+    callruby/dashlight-backend@dev
+    callruby/dashlight@dev
+    callruby/datasync-service@dev
+    callruby/employeedirectory-service@dev
+    callruby/force-frontend@dev
+    callruby/grasshopper-service@dev
+    callruby/identity-service@dev
+    callruby/notification-service@dev
+    callruby/partner-api@dev
+    callruby/partner-integration-service@dev
+    callruby/pco-service@dev
+    callruby/prl-authentication-service@dev
+    callruby/prl-frontend@dev
+    callruby/prl-webapi@dev
+    callruby/professional-chats@dev
+    callruby/rocketmatter-service@dev
+    callruby/ros-frontend@dev
+    callruby/ros-webapi@dev
+    callruby/rossupport-service@dev
+    callruby/rubyexp-webapi@dev
+    callruby/salesforce-service@dev
+    callruby/servicehandling-service@dev
+    callruby/stripe-service@dev
+    callruby/zuora-frontend@dev
+    callruby/zuora-service@dev    
+
+
+  WORKFLOW_FILES: |
+    main.yml=main.yml
+    main_pr_closed.yaml=main_pr_closed.yaml
+    main_pr_open.yml=main_pr_open.yml
+    clean_workflows.yaml=clean_workflows.yaml
+    issue_comments.yaml=issue_comments.yaml
+    main_manual.yaml=main_manual.yaml
+#main_checks.yml=main_checks.yml
+        
+jobs:
+  Github_Workflow_Sync:
+    #runs-on: self-hosted
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetching Local Repository
+        uses: actions/checkout@master
+      - name: Running Workflow Sync
+        uses: varunsridharan/action-github-workflow-sync@main
+        with:
+          DRY_RUN: false
+          REPOSITORIES: ${{ env.REPOSITORIES }}
+          WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          PULL_REQUEST: false
+          AUTO_CREATE_NEW_BRANCH: true

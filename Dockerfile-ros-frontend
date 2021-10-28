@@ -1,0 +1,30 @@
+### STAGE 1: Setup ###
+FROM node:14.16.0 as builder
+
+WORKDIR /usr/src/app
+
+COPY package.json yarn.lock ./
+RUN yarn install --no-cache --production && \
+    yarn add @angular/cli@9.0.0
+
+COPY . .
+RUN npm rebuild node-sass && \
+    $(yarn bin)/ng build --prod
+
+### STAGE 2: Setup ###
+FROM nginx:1.13.3-alpine
+
+COPY nginx/default.conf /etc/nginx/conf.d/
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=builder /usr/src/app/dist/ros-frontend /usr/share/nginx/html
+
+ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
+RUN chmod +x /usr/local/bin/confd
+
+COPY confd /etc/confd
+RUN apk add dos2unix --update-cache --repository http://dl-3.alpinelinux.org/alpine/edge/community/ --allow-untrusted && \
+    find /etc/confd -type f | xargs dos2unix && apk --purge del dos2unix && \
+    chmod +x /etc/confd/start.sh && \
+    ls -la /etc/confd
+
+ENTRYPOINT ["/etc/confd/start.sh"]

@@ -1,0 +1,30 @@
+name: Workflow Sync Consul Vault
+
+on: [workflow_dispatch]
+#  push:
+#    branches:
+#      - master
+env:
+  DRY_RUN: false
+  REPOSITORIES: |
+    callruby/ruby-apps-consul-vault@master
+  
+  WORKFLOW_FILES: |
+    terraform_consul_vault_apps.yml=terraform_consul_vault_apps.yml
+    
+jobs:
+  Github_Workflow_Sync:
+    #runs-on: self-hosted
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetching Local Repository
+        uses: actions/checkout@master
+      - name: Running Workflow Sync
+        uses: varunsridharan/action-github-workflow-sync@main
+        with:
+          DRY_RUN: ${{ env.DRY_RUN }}
+          REPOSITORIES: ${{ env.REPOSITORIES }}
+          WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          PULL_REQUEST: false
+          AUTO_CREATE_NEW_BRANCH: false

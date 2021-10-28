@@ -1,0 +1,129 @@
+on:
+  push:
+    branches: 
+      - release
+      - release_v1
+ 
+name: Create Tag & Release After Dev Deploy
+
+env:
+  REPOSITORY: "ruby-apps-deploy"
+  AWS_DEFAULT_REGION: "us-west-1"
+jobs:
+  build:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+        fetch-depth: 1
+                  
+    - name: (GLOBAL) Configure Service name.
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+   
+   #Comment if it has to be run on a public Agent 
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+    
+    #Uncomment if it has to be run on a public Agent
+    #- name: (GLOBAL) Configure AWS credentials
+      #uses: aws-actions/configure-aws-credentials@v1
+      #with:
+        #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        
+    - name: Get short SHA
+      id: slug
+      run: |
+        echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
+        echo ${GITHUB_SHA} | cut -c1-7
+
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Build, Test, Tag, Push.
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        echo '${{ secrets.PFX_CERT }}' | base64 --decode >> ssl_cert.pfx
+        echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
+        echo "Building Docker Image"
+        echo "===================================="
+        docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG --build-arg EKS_SERVICE=${EKS_SERVICE} .
+        echo "===================================="
+        echo "Pushing Docker Image"
+        echo "===================================="
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG
+        #echo "::set-env name=IMAGE::${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG"
+        
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'
+
+    - uses: imranismail/setup-kustomize@v1
+    
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/dev/$EKS_SERVICE
+        ls -la
+        #kustomize edit set image $EKS_sERVICE=${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${IMAGE_TAG}
+        sed -i -e "s|image:.*|image: ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${IMAGE_TAG}|g" values.yaml
+        #cat kustomization.yml
+        cat values.yaml
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git pull
+        #git add kustomization.yml
+        git add values.yaml
+        git commit -m "Update ${EKS_SERVICE} image to ${IMAGE_TAG} on deploy file"
+        set +e
+        git push origin master > error 
+        cat error
+        if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+          echo "========================================================"
+          echo "Retrying...."
+          echo "========================================================"
+          set -e
+          sleep 5
+          git pull
+          git commit -m "Update ${EKS_SERVICE} image to ${IMAGE_TAG} on deploy file"
+          git push origin master
+        fi 
+    - name: Checkout code
+      uses: actions/checkout@v2

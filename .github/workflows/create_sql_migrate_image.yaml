@@ -1,0 +1,65 @@
+name: Create Sql Migrate Image
+
+on: [workflow_dispatch]
+ 
+env:
+  AWS_DEFAULT_REGION: "us-west-1"
+  
+jobs:
+  build:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Get short SHA
+      id: slug
+      run: |
+        echo "COMMIT=$(echo ${{ github.event.pull_request.base.sha }} | cut -c1-7)" >> $GITHUB_ENV
+        echo ${{ github.event.pull_request.base.sha }} | cut -c1-7
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: (GLOBAL) Debug
+      run: |
+        echo "EKS_SERVICE=sqlmigrate" >> $GITHUB_ENV
+
+   #Comment if it has to be run on a public Agent 
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        #Uncomment if it has to be run on a public Agent    
+        #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Build Sql Migrate tool
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        echo "Building Docker Image"
+        echo "===================================="
+        cd SqlMigrate
+        docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:latest --build-arg EKS_SERVICE=${EKS_SERVICE} .
+        echo "===================================="
+        echo "Pushing Docker Image"
+        echo "===================================="
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:latest
+        #echo "::set-env name=IMAGE::${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:latest"
+                      
+    - name: Checkout code
+      uses: actions/checkout@v2

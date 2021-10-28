@@ -1,0 +1,98 @@
+# https://github.com/hashicorp/terraform-github-actions/blob/master/examples/arguments.md
+name: Terraform Pull request checks
+on:
+  #push:
+    #branches: 
+      #- pr*
+  pull_request:
+    types: [ opened, reopened ]
+
+env:
+  TF_VERSION: "0.15.0"
+  REPOSITORY: "blueprint-consul-vault"  
+  
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    #container:
+      #image: ubuntu:latest
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        #run: echo "jo"
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  terraform:
+    name: 'TerraformPr'
+    runs-on: self-hosted
+    needs: cleanup
+    #container:
+      #image: ubuntu:latest
+    #defaults:
+      #run:
+        #shell: bash
+  
+    steps:
+
+    - name: (GLOBAL) Define variables
+      id: Variables
+      run: |	  
+        echo "CONSUL_HTTP_TOKEN=${{secrets.CONSUL_HTTP_TOKEN}}" >> $GITHUB_ENV
+        echo "VAULT_TOKEN=${{secrets.VAULT_TOKEN}}" >> $GITHUB_ENV
+        
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+
+    - name: (GLOBAL) Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+    
+    - name: 'Terraform Init'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'init'
+        tf_actions_working_dir: '.'
+
+    - name: .terraform permissions
+      run: |
+        ls -la
+        pwd
+        sudo chown -R runner:runner .terraform
+        
+    - name: 'Terraform Plan'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'plan'
+        tf_actions_working_dir: '.'
+
+    - name: 'Terraform Validate'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'validate'
+        tf_actions_working_dir: '.'        

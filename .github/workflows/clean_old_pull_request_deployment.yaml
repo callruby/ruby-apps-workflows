@@ -1,0 +1,81 @@
+name: Removing Old Pull Request deployment
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '0 8 * * 1'
+  - cron: '0 8 * * 3'
+  - cron: '0 8 * * 6'
+  
+env:
+  REPOSITORY: "ruby-apps-deploy"
+  REPOSITORY_PROJECT: "ruby-project-deploy"
+
+jobs:
+  build:
+    #runs-on: ubuntu-latest
+    runs-on: self-hosted
+    steps:
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+                          
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_PROJECT}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_PROJECT}}
+        path: ${{env.REPOSITORY_PROJECT}}
+        ref: 'master'
+        
+    - name: Delete dev-pr yaml files on Project Repository
+      id: UpdateTagPR-Project
+      run: |
+        cd ruby-project-deploy
+        rm -f apps/dev-pr/*.yaml
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git add apps/dev-pr/*
+        set +e  # Grep succeeds with nonzero exit codes to show results.
+        git status | grep committed
+        if [ $? -eq 0 ]
+        then
+          set -e
+          git commit -am "Cleaned Pr files"
+          git push origin master
+        else
+          set -e
+          echo "No changes since last run"
+        fi                
+
+    - name: Delete dev-pr yaml files on Apps Repository
+      id: UpdateTagPR-Apps
+      run: |
+        pwd
+        cd ruby-apps-deploy/helm/dev-pr
+        rm -rf */
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git add *
+        set +e  # Grep succeeds with nonzero exit codes to show results.
+        git status | grep committed
+        if [ $? -eq 0 ]
+        then
+          set -e
+          git commit -am "Cleaned Pr files"
+          git push origin master
+        else
+          set -e
+          echo "No changes since last run"
+        fi

@@ -1,0 +1,104 @@
+on:
+  push:
+    branches: 
+      - new-infrastructure
+ 
+name: Create Tag & Release After Dev Deploy
+
+env:
+  REPOSITORY: "ruby-apps-deploy"
+  SERVICE_NAME : "offers"
+jobs:
+  build:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+                  
+    - name: (GLOBAL) Debug
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+        
+    - name: (GLOBAL) Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        
+    - name: Get short SHA
+      id: slug
+      run: |
+        echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
+        echo ${GITHUB_SHA} | cut -c1-7
+
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Build, Test, Tag, Push and Deploy to EKS
+      id: Deploy
+      run: |
+        cd Prlv2.WebAPI
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        echo "Building Docker Image"
+        echo "===================================="
+        docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG --build-arg EKS_SERVICE=${EKS_SERVICE} .
+        echo "===================================="
+        echo "Pushing Docker Image"
+        echo "===================================="
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG
+        #echo "::set-env name=IMAGE::${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG"
+        
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'
+
+    - uses: imranismail/setup-kustomize@v1
+    
+    - name: (DEV) Update Tag
+      id: UpdateTag
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/dev/$EKS_SERVICE
+        kustomize edit set image $EKS_sERVICE=${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${IMAGE_TAG}
+        #sed -i -e "s|image:.*|image: ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${IMAGE_TAG}|g" kustomization.yml
+        cat kustomization.yml
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git add kustomization.yml
+        git commit -m "Update ${EKS_SERVICE} image to ${IMAGE_TAG} on kustomization file"
+        git push origin master
+
+    - name: Checkout code
+      uses: actions/checkout@v2
