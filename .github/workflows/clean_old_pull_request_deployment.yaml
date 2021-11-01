@@ -39,13 +39,24 @@ jobs:
         path: ${{env.REPOSITORY_PROJECT}}
         ref: 'master'
         
-    - name: Import GPG key
+    - name: Import GPG key project-deploy
       uses: crazy-max/ghaction-import-gpg@v4
       with:
         gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
         passphrase: ${{ secrets.GPG_PASSPHRASE }}
         git_user_signingkey: true
         git_commit_gpgsign: true
+        workdir: ruby-project-deploy
+        
+
+    - name: Import GPG key apps-deploy
+      uses: crazy-max/ghaction-import-gpg@v4
+      with:
+        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+        passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        git_user_signingkey: true
+        git_commit_gpgsign: true
+        workdir: ruby-apps-deploy        
         
     - name: Delete dev-pr yaml files on Project Repository
       id: UpdateTagPR-Project
