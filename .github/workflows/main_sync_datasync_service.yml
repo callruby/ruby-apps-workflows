@@ -4,11 +4,17 @@ on: [workflow_dispatch]
 env:
   DRY_RUN: false
   REPOSITORIES: |
-    callruby/datasync-service@dev
+    callruby/datasync-service@release_v1
     
   WORKFLOW_FILES: |
     Dockerfile-datasync-service=Dockerfile
-    start-datasync-service.sh=Ruby.Microservices.DataSync/confd/start.sh
+    #start-datasync-service.sh=Ruby.Microservices.DataSync/confd/start.sh
+    main.yml=main.yml
+    main_pr_closed.yaml=main_pr_closed.yaml
+    main_pr_open.yml=main_pr_open.yml
+    clean_workflows.yaml=clean_workflows.yaml
+    issue_comments.yaml=issue_comments.yaml
+    main_manual.yaml=main_manual.yaml    
         
 jobs:
   Github_Workflow_Sync:
@@ -25,4 +31,4 @@ jobs:
           WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
           GITHUB_TOKEN: ${{ secrets.PAT }}
           PULL_REQUEST: false
-          AUTO_CREATE_NEW_BRANCH: false
+          AUTO_CREATE_NEW_BRANCH: true
