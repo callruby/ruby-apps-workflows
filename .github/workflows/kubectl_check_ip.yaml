@@ -18,8 +18,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
          
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'         
+         
     - name: Check service ip
       run: |
         mkdir -p '${{ github.workspace }}/.kube'
         echo '${{ secrets.SHARED_GITHUB_K8S_KUBECONFIG }}' | base64 -d > $KUBECONFIG
-        kubectl get --all-namespaces --output json  pods | jq '.items[] | select(.status.podIP=="${{ github.event.inputs.Environment }}")' | jq .metadata.name          
+        kubectl get --all-namespaces --output json  pods | jq '.items[] | select(.status.podIP=="${{ github.event.inputs.Ip }}")' | jq .metadata.name          
