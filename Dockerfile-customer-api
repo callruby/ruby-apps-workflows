@@ -6,7 +6,6 @@ COPY . ./
 RUN dotnet nuget locals --clear all
 
 RUN dotnet restore ./${APP}.sln && \
-    cp ssl_cert.pfx ${APP}/ssl_cert.pfx && \
     cd ${APP} && \
     dotnet build ${APP}.csproj && \
     cd ../${APP}.Unit.Test && \
@@ -27,6 +26,7 @@ RUN chmod +x /etc/confd/start.sh && \
     find /etc/confd -type f | xargs dos2unix && apt-get --purge remove -y dos2unix && rm -rf /var/lib/apt/lists/* && \
     chmod +x /usr/local/bin/confd
 
-COPY --from=builder /app/${APP}/out/ . 
+COPY --from=builder /app/${APP}/out/ .
+COPY ssl_cert.pfx .
 RUN mv -f .nuget/ /root/.nuget
 ENTRYPOINT ["/etc/confd/start.sh"]
