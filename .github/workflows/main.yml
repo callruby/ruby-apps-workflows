@@ -118,6 +118,7 @@ jobs:
         cat values.yaml
         git config user.email "check-action@github"
         git config user.name "check-action"
+        git config --global user.signingkey 4F498662B147F60C
         git pull
         #git add kustomization.yml
         git add values.yaml
