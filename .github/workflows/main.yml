@@ -79,6 +79,7 @@ jobs:
         echo "===================================="
         echo '${{ secrets.PFX_CERT }}' | base64 --decode >> ssl_cert.pfx
         echo '${{ secrets.SSL_PEM_CERT }}' | base64 --decode >> ssl_cert.pem
+        echo '${{ secrets.SSL_PEM_KEY }}' | base64 --decode >> ssl_key.pem
         echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
         echo "Building Docker Image"
         echo "===================================="
