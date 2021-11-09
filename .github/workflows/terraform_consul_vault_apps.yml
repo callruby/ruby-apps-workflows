@@ -79,7 +79,7 @@ jobs:
           #echo $values | cut -d'.' -f4-
           #echo $values | cut -d'.' -f4- | sed 's/#.*//'
           #echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g'
-          VALUE=$(echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g' | sed 's/ //')
+          VALUE=$(echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g' | sed 's/ //' | sed s/'\s'//g)
           echo "======================================================================================"
           echo "Comparing $VALUE if is on the Github Secrets "
           echo "cat SECRETS | grep \"$VALUE\""
