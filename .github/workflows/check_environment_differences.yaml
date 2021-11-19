@@ -1,0 +1,87 @@
+name: "Check difference on different environment files"
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'First environment source to compare [1] Qa1, [2] Qa2, [3] Qa3, [4] Qa4, [5] Qa5, [6] Qa6'
+        required: true
+        default: '1'
+      destination:
+        description: 'Second environment file to compare [1] Qa1, [2] Qa2, [3] Qa3, [4] Qa4, [5] Qa5, [6] Qa6'
+        required: true
+        default: '1'
+
+jobs:
+  check-difference:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Check environment options
+      id: UpdateTag
+      run: |
+        if [[ "${{ github.event.inputs.source }}" == "1" ]]; then
+          ENV=qa1
+        fi
+        if [[ "${{ github.event.inputs.source }}" == "2" ]]; then
+          ENV=qa2
+        fi
+        if [[ "${{ github.event.inputs.source }}" == "3" ]]; then
+          ENV=qa3
+        fi
+        if [[ "${{ github.event.inputs.source }}" == "4" ]]; then
+          ENV=qa4
+        fi
+        if [[ "${{ github.event.inputs.source }}" == "5" ]]; then
+          ENV=qa5
+        fi
+        if [[ "${{ github.event.inputs.source }}" == "6" ]]; then
+          ENV=qa6
+        fi
+        if [[ -z "$ENV" ]]; then
+          echo "============================================================================================"
+          echo "Environment ${{ github.event.inputs.source }} is not supported"
+          echo "============================================================================================"
+          exit 1
+        else
+          echo "============================================================================================"
+          echo "Environment: $ENV"
+          echo "============================================================================================"
+        fi
+
+        if [[ "${{ github.event.inputs.destination }}" == "1" ]]; then
+          ENV=qa1
+        fi
+        if [[ "${{ github.event.inputs.destination }}" == "2" ]]; then
+          ENV=qa2
+        fi
+        if [[ "${{ github.event.inputs.destination }}" == "3" ]]; then
+          ENV=qa3
+        fi
+        if [[ "${{ github.event.inputs.destination }}" == "4" ]]; then
+          ENV=qa4
+        fi
+        if [[ "${{ github.event.inputs.destination }}" == "5" ]]; then
+          ENV=qa5
+        fi
+        if [[ "${{ github.event.inputs.destination }}" == "6" ]]; then
+          ENV=qa6
+        fi
+        if [[ -z "$ENV" ]]; then
+          echo "============================================================================================"
+          echo "Environment ${{ github.event.inputs.destination }} is not supported"
+          echo "============================================================================================"
+          exit 1
+        else
+          echo "============================================================================================"
+          echo "Environment: $ENV"
+          echo "============================================================================================"
+        fi
+
+    - uses: LouisBrunner/diff-action@v0.1.0
+      with:
+        old: QA${{ github.event.inputs.source }}.md
+        new: QA${{ github.event.inputs.destination }}.md
+        mode: addition
+        tolerance: mixed-worse
+        #output: out.txt
