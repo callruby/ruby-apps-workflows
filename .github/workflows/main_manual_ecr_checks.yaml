@@ -4,9 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       Environment:
-        description: 'Environment where has to be deployed [1] Qa1, [2] Qa2, [3] Qa3, [4] Qa4, [5] Qa5, [6] Qa6'
+        description: 'Environment where has to be deployed'
+        type: choice
         required: true
-        default: '1'
+        options: 
+        - QA1
+        - QA2
+        - QA3
+        - QA4
+        - QA5
+        - QA6
       Tag:
         description: 'Image Tag be deployed Qa1-Qa6'
         required: true
@@ -69,37 +76,10 @@ jobs:
         echo "EKS_SERVICE: ${EKS_SERVICE}"
         echo "===================================="
 
-
         ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
                 
-        if [[ "${{ github.event.inputs.Environment }}" == "1" ]]; then
-          ENV=qa1
-        fi
-        if [[ "${{ github.event.inputs.Environment }}" == "2" ]]; then
-          ENV=qa2
-        fi
-        if [[ "${{ github.event.inputs.Environment }}" == "3" ]]; then
-          ENV=qa3
-        fi
-        if [[ "${{ github.event.inputs.Environment }}" == "4" ]]; then
-          ENV=qa4
-        fi
-        if [[ "${{ github.event.inputs.Environment }}" == "5" ]]; then
-          ENV=qa5
-        fi
-        if [[ "${{ github.event.inputs.Environment }}" == "6" ]]; then
-          ENV=qa6
-        fi
-        if [[ -z "$ENV" ]]; then
-          echo "============================================================================================"
-          echo "Environment ${{ github.event.inputs.Environment }} is not supported to deploy it in this way"
-          echo "============================================================================================"
-          exit 1
-        else
-          echo "============================================================================================"
-          echo "Environment: $ENV"
-          echo "============================================================================================"
-        fi
+        ENV=${{ github.event.inputs.Environment }}
+        
         ls -la ruby-apps-deploy
         cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
         ls -la
