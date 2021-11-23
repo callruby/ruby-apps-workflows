@@ -15,7 +15,7 @@ on:
         required: true
         default: ''
       Password:
-        description: 'Password to trigger the deployment'
+        description: 'Password to trigger the deployment into Staging/Prod'
         required: true
         default: ''
       
@@ -40,10 +40,14 @@ jobs:
       id: CheckPassword
       run: |
         if [[ "${{github.event.inputs.Password}}" == "${{secrets.DEPLOY_PASSWORD}}" ]]; then
-          echo "All OK"
+          echo "===================================="
+          echo "The password match"
+          echo "===================================="
           exit 0
         else
+          echo "===================================="
           echo "The password not match"
+          echo "===================================="
           exit 1
         fi
         
