@@ -1,0 +1,58 @@
+name: Cleaning reports
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '30 0 * * 6'  
+  
+env:
+  REPOSITORY: "ruby-postman-collections"
+
+jobs:
+  build:
+    #runs-on: ubuntu-latest
+    runs-on: self-hosted
+    steps:
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'main'
+        
+    - name: Import GPG key project-deploy
+      uses: crazy-max/ghaction-import-gpg@v4
+      with:
+        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+        passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        git_user_signingkey: true
+        git_commit_gpgsign: true
+        workdir: ruby-postman-collections
+                
+    - name: Delete reports html files on the Repository
+      id: UpdateTagPR-Project
+      run: |
+        cd ruby-postman-collections
+        rm -f *.html
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git add *.html
+        set +e  # Grep succeeds with nonzero exit codes to show results.
+        git status | grep committed
+        if [ $? -eq 0 ]
+        then
+          set -e
+          git commit -am "Cleaned reports html files"
+          git push origin main
+        else
+          set -e
+          echo "No changes since last run"
+        fi
