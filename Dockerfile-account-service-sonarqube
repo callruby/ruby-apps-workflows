@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y openjdk-11-jdk && \
     dotnet tool install --global dotnet-sonarscanner
 
 COPY . ./
-RUN dotnet nuget locals --clear all && \
+RUN dotnet nuget locals --clear all \
     dotnet sonarscanner begin \
     /k:"account-service" \
     /d:sonar.host.url="http://sonarqube-sonarqube.default.svc.cluster.local:9000" \
