@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y openjdk-11-jdk && \
 COPY . ./
 RUN dotnet nuget locals --clear all && \
     dotnet sonarscanner begin \
-    /k:"account-$SONAR_PROJECT_KEY" \
+    /k:"$SONAR_PROJECT_KEY" \
     /d:sonar.host.url="$SONAR_HOST_URL" \
     /d:sonar.login="$SONAR_TOKEN"
     
