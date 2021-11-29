@@ -5,6 +5,7 @@ ENV PATH="$PATH:/root/.dotnet/tools"
 ARG SONAR_PROJECT_KEY=account-service
 ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
 ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y openjdk-11-jdk && \
@@ -20,7 +21,7 @@ RUN dotnet nuget locals --clear all && \
 RUN dotnet restore ./${APP}.sln && \
     dotnet publish -c Release -o /app/${APP}/out/ && \
     cp -fr $HOME/.nuget /app/${APP}/out/ && \
-    dotnet sonarscanner end /d:sonar.login="1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20" && \
+    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
     cd ${APP} \
     dotnet build ${APP}.csproj
 #----------------------------------------------------------------
