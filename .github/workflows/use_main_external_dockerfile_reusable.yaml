@@ -1,0 +1,32 @@
+name: Use reusable docker external build pipeline
+
+on:
+  push:
+    branches:
+      - sonarq  
+
+jobs:
+  do-it:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+  docker:
+    uses: callruby/ruby-apps-workflows/.github/workflows/main_external_dockerfile_reusable.yaml@master
+    with:
+      tag: $GITHUB_RUN_NUMBER
+    secrets:
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      PAT: ${{secrets.PAT}}
+      GPG_PRIVATE_KEY: ${{secrets.GPG_PRIVATE_KEY}}
+      GPG_PASSPHRASE: ${{secrets.GPG_PASSPHRASE}}
+      EKS_SERVICE: ${{secrets.EKS_SERVICE}}
+      AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+      PFX_CERT: ${{secrets.PFX_CERT}}
+      SSL_PEM_CERT: ${{secrets.SSL_PEM_CERT}}
+      SSL_PEM_KEY: ${{secrets.SSL_PEM_KEY}}
+      NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
