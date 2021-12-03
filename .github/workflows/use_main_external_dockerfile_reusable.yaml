@@ -3,7 +3,10 @@ name: Use reusable docker external build pipeline
 on:
   push:
     branches:
-      - sonarq  
+      - sonarq
+      - release
+      - release_v1
+      - release_v2      
 
 jobs:
   do-it:
