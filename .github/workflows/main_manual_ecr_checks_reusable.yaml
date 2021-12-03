@@ -1,0 +1,140 @@
+name: Update App to the Selected Environment.
+
+on:
+  workflow_call:
+    inputs:
+      Environment:
+        description: 'Environment where has to be deployed'
+        type: choice
+        required: true
+        options: 
+        - qa1
+        - qa2
+        - qa3
+        - qa4
+        - qa5
+        - qa6
+      Tag:
+        description: 'Image Tag be deployed Qa1-Qa6'
+        required: true
+        default: ''
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+      PAT:
+        required: true
+      GPG_PRIVATE_KEY:
+        required: true
+      GPG_PASSPHRASE:
+        required: true
+      EKS_SERVICE:
+        required: true
+      AWS_DEFAULT_REGION:
+        required: true
+      PFX_CERT:
+        required: true
+      SSL_PEM_CERT:
+        required: true
+      SSL_PEM_KEY:
+        required: true
+      NUGET_CONFIG:
+        required: true
+      
+jobs:
+
+  init:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: (GLOBAL) Configure Service name.
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+        echo "AWS_WEB_IDENTITY_TOKEN_FILE=" >> $GITHUB_ENV
+        
+    - name: (GLOBAL) Debug
+      run: |
+        echo "Environment: ${{github.event.inputs.Environment}}"
+
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'        
+
+    - name: Import GPG key
+      uses: crazy-max/ghaction-import-gpg@v4
+      with:
+        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+        passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        git_user_signingkey: true
+        git_commit_gpgsign: true
+        
+    - uses: imranismail/setup-kustomize@v1
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: us-west-1
+    
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
+                
+        ENV=${{ github.event.inputs.Environment }}
+        
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
+        ls -la
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        if [[ -n "$IMAGE_EXIST" ]]; then
+          echo "================================================================================"
+          echo "Image exist on ECR!!!!!!!!!"
+          echo "================================================================================"
+          sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:${{github.event.inputs.Tag}}|g" values.yaml
+          cat values.yaml
+          git config user.email "check-action@github"
+          git config user.name "check-action"
+          git pull
+          #git add kustomization.yml
+          git add values.yaml
+          git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+            git push origin master
+          fi
+        else
+          echo "================================================================================"
+          echo "Image not exist on ECR please check" 
+          echo "================================================================================"
+          exit 1
+        fi
+    - name: Checkout code
+      uses: actions/checkout@v2
