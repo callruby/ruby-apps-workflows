@@ -1,0 +1,208 @@
+on:
+  workflow_call:
+    inputs:
+      tag: 
+        type: string
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+      PAT:
+        required: true
+      GPG_PRIVATE_KEY:
+        required: true
+      GPG_PASSPHRASE:
+        required: true
+      EKS_SERVICE:
+        required: true
+      AWS_DEFAULT_REGION:
+        required: true
+      PFX_CERT:
+        required: true
+      SSL_PEM_CERT:
+        required: true
+      SSL_PEM_KEY:
+        required: true
+      NUGET_CONFIG:
+        required: true 
+ 
+env:
+  REPOSITORY: "ruby-apps-deploy"
+  REPOSITORY_PROJECT: "ruby-project-deploy"
+  AWS_DEFAULT_REGION: "us-west-1"
+  KUBECONFIG: '${{ github.workspace }}/.kube/gh-kubeconfig'
+
+jobs:
+  build:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Get short SHA
+      id: slug
+      run: |
+        echo "COMMIT=$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-7)" >> $GITHUB_ENV
+        echo ${{ github.event.pull_request.head.sha }} | cut -c1-7
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+    
+    #Enforce branch policy
+    - uses: deepakputhraya/action-branch-name@master
+      with:
+        regex: '([a-z])+\/([a-z])+' # Regex the branch should match. This example enforces grouping
+        allowed_prefixes: 'feature,stable,fix,hotfix' # All branches should start with the given prefix
+        ignore: master,develop,dev,release,main # Ignore exactly matching branch names from convention
+        min_length: 5 # Min length of the branch name
+        max_length: 30 # Max length of the branch name                  
+                  
+    - name: Import GPG key
+      uses: crazy-max/ghaction-import-gpg@v4
+      with:
+        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+        passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        git_user_signingkey: true
+        git_commit_gpgsign: true
+                  
+    - name: (GLOBAL) Debug
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+
+   #Comment if it has to be run on a public Agent 
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        #Uncomment if it has to be run on a public Agent    
+        #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Build, Test, Tag, Push and Deploy to EKS
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $COMMIT"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        echo "Building Docker Image"
+        echo "===================================="
+        echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
+        docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT --build-arg EKS_SERVICE=${EKS_SERVICE} .
+        echo "===================================="
+        echo "Pushing Docker Image"
+        echo "===================================="
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT
+        #echo "::set-env name=IMAGE::${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT"
+        
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'
+
+    - uses: imranismail/setup-kustomize@v1
+
+    - name: (DEV) Update Tag on Apps repository
+      id: UpdateTag
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $COMMIT"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        #cd ruby-apps-deploy/dev-pr/
+        cd ruby-apps-deploy/helm/dev-pr/
+        mkdir -p $EKS_SERVICE-${COMMIT}
+        echo "========================="
+        echo "Copying Base App Pr file"
+        echo "========================="
+        cp -fr ../dev-pr_base/$EKS_SERVICE/* $EKS_SERVICE-${COMMIT}
+        ls -la
+        cd $EKS_SERVICE-${COMMIT}
+        ls -la
+        #kustomize edit set image base_image=${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${COMMIT}
+        sed -i -e "s|image:.*|image: ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${COMMIT}|g" values.yaml
+        sed -i -e "s,PR_COMMIT,$COMMIT,g" values.yaml
+        sed -i -e "s,APP,$EKS_SERVICE,g" values.yaml
+        cat values.yaml
+        cd ../
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git add $EKS_SERVICE-${COMMIT}/*
+        git commit -m "Update ${EKS_SERVICE} image to ${COMMIT} - PR"
+        git push origin master
+
+    - name: (GLOBAL) Check out ruby-project-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-project-deploy
+        path: ruby-project-deploy
+        ref: 'master'
+        
+    - name: (DEV) Update Tag on Project Repository
+      id: UpdateTagPR
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $COMMIT"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        cd ruby-project-deploy/apps/
+        mkdir -p dev-pr
+        cp -f dev-pr-base/app_dev_pr.yaml dev-pr/$EKS_SERVICE-${COMMIT}.yaml
+        cd dev-pr
+        sed -i -e "s,APP,$EKS_SERVICE,g" $EKS_SERVICE-${COMMIT}.yaml
+        sed -i -e "s,PR_COMMIT,$COMMIT,g" $EKS_SERVICE-${COMMIT}.yaml
+        cd ../
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git status
+        git add dev-pr/*
+        git commit -m "Update ${EKS_SERVICE} image to ${COMMIT} - PR"
+        git push origin master
+
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'
+      
+    - name: Sleep 5 minutes & Obtain PullRequest Services Created
+      run: |
+        mkdir -p '${{ github.workspace }}/.kube'
+        echo "The PR deployment CI/CD process ended OK"
+        echo "Waiting five minutes for ArgoCD to retrieve the repository changes"
+        sleep 300
+        echo "Taking App PR Service Load Balancer"
+        echo '${{ secrets.SHARED_GITHUB_K8S_KUBECONFIG }}' | base64 -d > $KUBECONFIG
+        kubectl get svc -n development-apps --selector=app.kubernetes.io/app=${EKS_SERVICE}-${COMMIT}
+    
+   #- run: |
+   #    kubectl port-forward pod/my-pod 80:80 --kubeconfig $POD_KUBECONFIG &
+   #    sleep 5
+   #    curl http://localhost:80
+    
+    - name: Checkout code
+      uses: actions/checkout@v2
