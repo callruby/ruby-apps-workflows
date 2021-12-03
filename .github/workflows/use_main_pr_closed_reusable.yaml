@@ -1,0 +1,33 @@
+name: Use reusable docker pull request closed build pipeline
+
+on:
+  #push:
+    #branches: 
+      #- pr*
+  pull_request:
+    types: [ closed ]      
+
+jobs:
+  do-it:
+    runs-on: ubuntu-latest #self-hosted
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Simple Task
+        run: echo Hello, world!
+
+  docker:
+    uses: callruby/ruby-apps-workflows/.github/workflows/main_pr_closed_reusable.yaml@master
+    with:
+      tag: $GITHUB_RUN_NUMBER
+    secrets:
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      PAT: ${{secrets.PAT}}
+      GPG_PRIVATE_KEY: ${{secrets.GPG_PRIVATE_KEY}}
+      GPG_PASSPHRASE: ${{secrets.GPG_PASSPHRASE}}
+      EKS_SERVICE: ${{secrets.EKS_SERVICE}}
+      AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+      PFX_CERT: ${{secrets.PFX_CERT}}
+      SSL_PEM_CERT: ${{secrets.SSL_PEM_CERT}}
+      SSL_PEM_KEY: ${{secrets.SSL_PEM_KEY}}
+      NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
