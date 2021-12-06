@@ -1,0 +1,60 @@
+on: workflow_dispatch
+name: Helm Charts linter
+jobs:
+  helm-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: helm-check-apps
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./apps_base
+        CHART_VALUES: ./apps_base/values.yaml
+        
+    - name: helm-check-environment
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./environment_base
+        CHART_VALUES: ./environment_base/values.yaml
+        
+    - name: helm-check-migration
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./migration_base
+        CHART_VALUES: ./migration_base/values.yaml        
+
+    - name: helm-check-consul
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./consul_base
+        CHART_VALUES: ./consul_base/values.yaml
+        
+    - name: helm-check-environment
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./vault_base
+        CHART_VALUES: ./vault_base/values.yaml
+        
+    - name: helm-check-sonarqube
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./sonarqube_base
+        CHART_VALUES: ./sonarqube_base/values.yaml                
+        
+    - name: helm-check-postman
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./postman_base
+        CHART_VALUES: ./postman_base/values.yaml
+        
+    - name: helm-check-consul_backup
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./consul_backup_base
+        CHART_VALUES: ./consul_backup_base/values.yaml        
+
+    - name: helm-check-terraform
+      uses: igabaydulin/helm-check-action@0.1.4
+      env:
+        CHART_LOCATION: ./terraform_base
+        CHART_VALUES: ./terraform_base/values.yaml
