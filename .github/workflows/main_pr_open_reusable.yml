@@ -70,11 +70,11 @@ jobs:
         min_length: 5 # Min length of the branch name
         max_length: 30 # Max length of the branch name                  
 
-    - name: Add Pull Request Reviewer
-      uses: AveryCameronUofR/add-reviewer-gh-action@1.0.3
-      with: 
-        reviewers: ${{ secrets.APPROVERS }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+    #- name: Add Pull Request Reviewer
+      #uses: AveryCameronUofR/add-reviewer-gh-action@1.0.3
+      #with: 
+        #reviewers: ${{ secrets.APPROVERS }}
+        #token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Import GPG key
       uses: crazy-max/ghaction-import-gpg@v4
