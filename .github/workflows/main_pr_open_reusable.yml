@@ -25,7 +25,7 @@ on:
       NUGET_CONFIG:
         required: true
       APPROVERS:
-        required: true
+        required: false
  
 env:
   REPOSITORY: "ruby-apps-deploy"
