@@ -23,7 +23,9 @@ on:
       SSL_PEM_KEY:
         required: true
       NUGET_CONFIG:
-        required: true 
+        required: true
+      APPROVERS:
+        required: true
  
 env:
   REPOSITORY: "ruby-apps-deploy"
@@ -67,7 +69,13 @@ jobs:
         ignore: master,develop,dev,release,main # Ignore exactly matching branch names from convention
         min_length: 5 # Min length of the branch name
         max_length: 30 # Max length of the branch name                  
-                  
+
+    - name: Add Pull Request Reviewer
+      uses: AveryCameronUofR/add-reviewer-gh-action@1.0.3
+      with: 
+        reviewers: ${{ secrets.APPROVERS }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
     - name: Import GPG key
       uses: crazy-max/ghaction-import-gpg@v4
       with:
