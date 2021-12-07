@@ -31,3 +31,4 @@ jobs:
       SSL_PEM_CERT: ${{secrets.SSL_PEM_CERT}}
       SSL_PEM_KEY: ${{secrets.SSL_PEM_KEY}}
       NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
+      APPROVERS: "" # comma list of users that has to be added as pr reviewers 
