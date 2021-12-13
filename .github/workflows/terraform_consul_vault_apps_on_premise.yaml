@@ -1,0 +1,112 @@
+
+# https://github.com/hashicorp/terraform-github-actions/blob/master/examples/arguments.md
+name: 'TerraformDeploy to Onpremise Consul'
+on:
+  workflow_dispatch:
+    inputs:
+      Password:
+        description: 'Password to trigger the deployment into On premise Consul'
+        required: true
+        default: '' 
+ 
+env:
+  TF_VERSION: "0.15.0"
+  REPOSITORY: "blueprint-consul-vault"  
+  
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    #container:
+      #image: ubuntu:latest
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        #run: echo "jo"
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  terraform:
+    name: 'Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+  
+    steps:
+
+    - name: (GLOBAL) Define variables
+      id: Variables
+      run: |	  
+        echo "CONSUL_HTTP_TOKEN=${{secrets.CONSUL_HTTP_TOKEN}}" >> $GITHUB_ENV
+        
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+        
+    - name: Check Password
+      id: CheckPassword
+      run: |
+        if [[ "${{github.event.inputs.Password}}" == "${{secrets.DEPLOY_PASSWORD}}" ]]; then
+          echo "===================================="
+          echo "The password match"
+          echo "===================================="
+          exit 0
+        else
+          echo "===================================="
+          echo "The password not match"
+          echo "===================================="
+          exit 1
+        fi        
+        
+    - name: (GLOBAL) Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        terraform_version: ${{ env.TF_VERSION }}    
+
+    - name: Terraform Init & Validate
+      run: |
+        cd ${{env.REPOSITORY}}/read_onpremise        
+        terraform init
+        sudo chown -R runner:runner .terraform
+        sudo curl -L https://github.com/cloudposse/tfmask/releases/download/0.7.0/tfmask_linux_amd64 -o /usr/bin/tfmask
+        sudo chmod +x /usr/bin/tfmask
+        terraform validate -no-color
+        
+    - name: Terraform Plan
+      id: plan
+      run: |
+        cd ${{env.REPOSITORY}}/read_onpremise
+        TFMASK_CHAR="*"
+        export TFMASK_VALUES_REGEX="(?i)^.*.*$"
+        TFMASK_VALUES_REGEX="(?i)^.*.*$"
+        terraform plan -no-color | tfmask
+      continue-on-error: true
+      
+    - name: Terraform Apply
+      id: apply
+      run: |   
+        cd ${{env.REPOSITORY}}/read_onpremise
+        TFMASK_CHAR="*"
+        export TFMASK_VALUES_REGEX="(?i)^.*.*$"
+        TFMASK_VALUES_REGEX="(?i)^.*.*$"
+        terraform apply -no-color | tfmask
+      continue-on-error: false
