@@ -15,7 +15,7 @@ jobs:
         run: echo Hello, world!
 
   docker:
-    uses: callruby/ruby-apps-workflows/.github/workflows/clean_workflows_reusable.yml@master
+    uses: callruby/ruby-apps-workflows/.github/workflows/clean_workflows_reusable.yaml@master
     with:
       tag: $GITHUB_RUN_NUMBER
     secrets:
