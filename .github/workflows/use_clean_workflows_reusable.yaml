@@ -16,8 +16,6 @@ jobs:
 
   docker:
     uses: callruby/ruby-apps-workflows/.github/workflows/clean_workflows_reusable.yaml@master
-    with:
-      tag: $GITHUB_RUN_NUMBER
     secrets:
       #GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       PAT: ${{secrets.PAT}}
