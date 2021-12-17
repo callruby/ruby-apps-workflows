@@ -38,6 +38,7 @@ jobs:
       id: Variables
       run: |	  
         echo "CONSUL_HTTP_TOKEN=${{secrets.CONSUL_HTTP_TOKEN}}" >> $GITHUB_ENV
+        echo "ON_PREMISE_CONSUL_HTTP_TOKEN=${{secrets.ON_PREMISE_CONSUL_HTTP_TOKEN}}" >> $GITHUB_ENV
         
     - name: Create repository folder
       run: |
@@ -84,7 +85,8 @@ jobs:
 
     - name: Terraform Init & Validate
       run: |
-        cd ${{env.REPOSITORY}}/read_onpremise        
+        cd ${{env.REPOSITORY}}/read_onpremise
+        sed -i -e "s,ON_PREMISE_CONSUL_HTTP_TOKEN,${ON_PREMISE_CONSUL_HTTP_TOKEN},g" main.tf
         terraform init
         sudo chown -R runner:runner .terraform
         sudo curl -L https://github.com/cloudposse/tfmask/releases/download/0.7.0/tfmask_linux_amd64 -o /usr/bin/tfmask
@@ -98,7 +100,7 @@ jobs:
         TFMASK_CHAR="*"
         export TFMASK_VALUES_REGEX="(?i)^.*.*$"
         TFMASK_VALUES_REGEX="(?i)^.*.*$"
-        terraform plan -no-color | tfmask
+        terraform plan -no-color -input=false | tfmask
       continue-on-error: true
       
     - name: Terraform Apply
@@ -108,5 +110,5 @@ jobs:
         TFMASK_CHAR="*"
         export TFMASK_VALUES_REGEX="(?i)^.*.*$"
         TFMASK_VALUES_REGEX="(?i)^.*.*$"
-        terraform apply -no-color | tfmask
+        terraform apply -no-color -input=false -auto-approve | tfmask
       continue-on-error: false
