@@ -70,7 +70,7 @@ jobs:
         echo $github_secrets >> SECRETS 
         echo "======DEBUG TERRAFORM VALUE LIST============================================================="
         #USED_VALUES=$(grep "module.application1.github_secrets" *.tf | awk 'NF' | sed 's/ //')
-        USED_VALUES=(grep "module.application1.github_secrets" *.tf | awk {'print $2 $3 $4'} | awk 'NF' | sed 's/ //')
+        USED_VALUES=$(grep "module.application1.github_secrets" *.tf | awk {'print $2 $3 $4'} | awk 'NF' | sed 's/ //')
         echo "============================================================================================="
         IFS=$'\n'
         for values in $USED_VALUES
