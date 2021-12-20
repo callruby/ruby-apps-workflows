@@ -1,15 +1,21 @@
-name: PR environment Deployer
+name: PR environment deployer
+
 on:
   pull_request:
-    types:
-      - labeled
+    types: [labeled, opened, edited]
+
 jobs:
-  label:
-    name: Run only when the labels include "QA"
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'QA') }}
+  enforce-kind:
+    name: Pr environment deployer
     runs-on: ubuntu-latest
     steps:
-      - name: debug
+      - name: Check if a valid Environment is set
+        env:
+          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
-          echo "${{ toJson(github.event.pull_request.labels) }}"
-          echo ${{ toJson(github.event.pull_request.labels.*.name) }} | sed 's,[,,g' | sed 's,],,g' | sed -z 's/\n/ /g'
+          if ! jq --exit-status 'any(test("environment/qa1") or test("environment/qa2") or test("environment/qa3") or test("environment/qa4") or test("environment/qa5") or test("environment/qa6"))' >/dev/null <<< $LABELS; then
+            echo "::error ::Please set environment/ENVIRONMENT_NAME as label"
+            exit 1
+          else
+            echo $LABELS
+          fi
