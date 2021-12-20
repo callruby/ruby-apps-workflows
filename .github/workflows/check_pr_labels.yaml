@@ -25,7 +25,7 @@ jobs:
             VALUES=$(jq -c -n --arg v "${ENVS:1}" '$v | split(" ")' | sed 's,[,,g' | sed 's,],,g')
             echo $VALUES
             IFS=','
-            for VAL IN $VALUES; do 
+            for VAL in $VALUES; do 
               echo $VAL
             done
             exit 1
