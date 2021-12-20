@@ -13,7 +13,7 @@ jobs:
         env:
           LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
-          if ! jq --exit-status 'any(test("environment/qa1") or test("environment/qa2") or test("environment/qa3") or test("environment/qa4") or test("environment/qa5") or test("environment/qa6"))' >/dev/null <<< $LABELS; then
+          if jq --exit-status 'any(test("environment/qa1") or test("environment/qa2") or test("environment/qa3") or test("environment/qa4") or test("environment/qa5") or test("environment/qa6"))' >/dev/null <<< $LABELS; then
             echo "::error ::Please set environment/ENVIRONMENT_NAME as label"
             echo $LABELS
             exit 1
