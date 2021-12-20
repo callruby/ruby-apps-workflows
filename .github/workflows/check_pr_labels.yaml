@@ -2,6 +2,8 @@ on:
   pull_request:
     types:
       - labeled
+      
+name: Environment Label Pull Request deployment
 jobs:
   dev:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'QA') }}
