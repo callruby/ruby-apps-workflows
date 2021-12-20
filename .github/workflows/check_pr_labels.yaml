@@ -13,9 +13,16 @@ jobs:
         env:
           LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
-          if jq --exit-status 'any(test("environment/qa1") or test("environment/qa2") or test("environment/qa3") or test("environment/qa4") or test("environment/qa5") or test("environment/qa6"))' >/dev/null <<< $LABELS; then
+          if jq --exit-status 'any(test("QA1") or test("QA2") or test("QA3") or test("QA4") or test("QA5") or test("QA6"))' >/dev/null <<< $LABELS; then
             echo "::error ::Please set environment/ENVIRONMENT_NAME as label"
             echo $LABELS
+            POSSIBLE_NETWORKS: "QA1 QA2 QA3 QA4 QA5 QA6 "
+            for LABEL in $(echo $LABELS | jq -r '.[].name'); do
+              if [[ $POSSIBLE_NETWORKS =~ (^|[[:space:]])$LABEL($|[[:space:]]) ]]; then
+                ENVS+=" $LABEL"
+              fi
+            done
+            $(jq -c -n --arg v "${ENVS:1}" '$v | split(" ")')
             exit 1
           else
             echo $LABELS
