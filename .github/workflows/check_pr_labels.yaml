@@ -6,7 +6,7 @@ on:
 jobs:
   label:
     name: Run only when the labels include "QA"
-    if: ${{ contains(github.event.pull_request.labels.*.names, 'QA') }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'QA') }}
     runs-on: ubuntu-latest
     steps:
       - name: debug
