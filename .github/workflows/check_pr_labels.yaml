@@ -22,7 +22,7 @@ jobs:
                 ENVS+=" $LABEL"
               fi
             done
-            $(jq -c -n --arg v "${ENVS:1}" '$v | split(" ")')
+            jq -c -n --arg v "${ENVS:1}" '$v | split(" ")
             exit 1
           else
             echo $LABELS
