@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Check if a valid Environment is set
         env:
-          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+          LABELS: ${{ toJson(github.event.pull_request.labels) }}
         run: |
           if jq --exit-status 'any(test("QA1") or test("QA2") or test("QA3") or test("QA4") or test("QA5") or test("QA6"))' >/dev/null <<< $LABELS; then
           
