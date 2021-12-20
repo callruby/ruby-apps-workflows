@@ -1,4 +1,4 @@
-name: label
+name: PR environment Deployer
 on:
   pull_request:
     types:
