@@ -6,7 +6,7 @@ on:
 name: Environment Label Pull Request deployment
 jobs:
   dev:
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'QA') }}
+    #if: ${{ contains(github.event.pull_request.labels.*.name, 'QA') }}
     runs-on: ubuntu-latest
     name: A job to check the PR labels contain given labels
     steps:
