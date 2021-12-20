@@ -1,14 +1,18 @@
+name: label
 on:
   pull_request:
     types:
       - labeled
-      
-name: Environment Label Pull Request deployment
 jobs:
-  dev:
-    #if: ${{ contains(github.event.pull_request.labels.*.name, 'QA') }}
+  label:
+    name: Run only when the labels include "QA"
+    if: ${{ contains(github.event.pull_request.labels.*.names, 'QA') }}
     runs-on: ubuntu-latest
-    name: A job to check the PR labels contain given labels
     steps:
-    - name: See result
-      run: echo "${{ github.event.pull_request.labels.*.name }}"      
+      - name: debug
+        run: |
+          echo "${{ toJson(github.event.pull_request.labels) }}"
+          echo "${{ toJson(github.event.pull_request.labels.*.name) }}"
+          for label in ${{ toJson(github.event.pull_request.labels.*.name) }}; do
+            echo $label
+          done
