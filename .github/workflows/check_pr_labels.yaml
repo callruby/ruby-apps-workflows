@@ -22,7 +22,7 @@ jobs:
                 ENVS+=" $LABEL"
               fi
             done
-            VALUES=$(jq -c -n --arg v "${ENVS:1}" '$v | split(" ")' | sed 's,[,,g' | sed 's,],,g')
+            VALUES=$(jq -c -n --arg v "${ENVS:1}" '$v | split(" ")' | sed 's/[][]//g')
             echo $VALUES
             IFS=','
             for VAL in $VALUES; do 
