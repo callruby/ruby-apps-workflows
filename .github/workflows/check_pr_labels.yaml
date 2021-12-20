@@ -12,4 +12,4 @@ jobs:
       - name: debug
         run: |
           echo "${{ toJson(github.event.pull_request.labels) }}"
-          echo ${{ toJson(github.event.pull_request.labels.*.name) }} | sed 's,[,,g' | sed s,],,g' | sed -z 's/\n/ /g'
+          echo ${{ toJson(github.event.pull_request.labels.*.name) }} | sed 's,[,,g' | sed 's,],,g' | sed -z 's/\n/ /g'
