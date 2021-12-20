@@ -1,0 +1,12 @@
+on:
+  pull_request:
+    types:
+      - labeled
+jobs:
+  dev:
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'dev') }}
+    runs-on: ubuntu-latest
+    name: A job to check the PR labels contain given labels
+    steps:
+    - name: See result
+      run: echo "${{ github.event.pull_request.labels.*.name }}"      
