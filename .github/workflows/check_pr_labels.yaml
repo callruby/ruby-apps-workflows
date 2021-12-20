@@ -6,29 +6,30 @@ on:
 
 jobs:
   enforce-kind:
-    name: Pr environment deployer
+    name: Pull request environment deployer
     runs-on: ubuntu-latest
     steps:
-      - name: Check if a valid Environment is set
+      - name: Check if a valid Environment is set and deploy the pr image
         env:
           LABELS: ${{ toJson(github.event.pull_request.labels) }}
         run: |
           #if jq --exit-status 'any(test("QA1") or test("QA2") or test("QA3") or test("QA4") or test("QA5") or test("QA6"))' >/dev/null <<< $LABELS; then
-          
-            #echo $LABELS
-            POSSIBLE_NETWORKS="QA1 QA2 QA3 QA4 QA5 QA6 "
-            for LABEL in $(echo $LABELS | jq -r '.[].name'); do
-              if [[ $POSSIBLE_NETWORKS =~ (^|[[:space:]])$LABEL($|[[:space:]]) ]]; then
-                ENVS+=" $LABEL"
-              fi
-            done
-            VALUES=$(jq -c -n --arg v "${ENVS:1}" '$v | split(" ")' | sed 's/[][]//g')
-            echo $VALUES
-            IFS=','
-            for VAL in $VALUES; do 
-              echo $VAL
-            done
-            exit 1
+          #echo $LABELS
+          POSSIBLE_ENVS="QA1 QA2 QA3 QA4 QA5 QA6 "
+          for LABEL in $(echo $LABELS | jq -r '.[].name'); do
+            if [[ $POSSIBLE_ENVS =~ (^|[[:space:]])$LABEL($|[[:space:]]) ]]; then
+              ENVS+=" $LABEL"
+            fi
+          done
+          VALUES=$(jq -c -n --arg v "${ENVS:1}" '$v | split(" ")' | sed 's/[][]//g')
+          #echo $VALUES
+          IFS=','
+          for VAL in $VALUES; do 
+            echo "==================================================================================="
+            echo "Updating PR image on the following environments"
+            echo "==================================================================================="
+            echo $VAL
+          done  
           #else
             #echo $LABELS
             #echo "::error ::Please set environment/ENVIRONMENT_NAME as label"
