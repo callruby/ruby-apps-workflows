@@ -1,9 +1,24 @@
 name: PR environment deployer
-
 on:
-  pull_request:
-    types: [labeled]
-
+  workflow_call:
+    inputs:
+      tag: 
+        type: string
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+      PAT:
+        required: true
+      GPG_PRIVATE_KEY:
+        required: true
+      GPG_PASSPHRASE:
+        required: true
+      EKS_SERVICE:
+        required: true
+      AWS_DEFAULT_REGION:
+        required: true
+      NUGET_CONFIG:
+        required: true
 env:
   REPOSITORY: "ruby-apps-deploy"
   REPOSITORY_PROJECT: "ruby-project-deploy"
