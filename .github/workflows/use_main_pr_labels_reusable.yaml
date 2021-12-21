@@ -14,11 +14,10 @@ jobs:
         run: echo Hello, world!
 
   docker:
-    uses: callruby/ruby-apps-workflows/.github/workflows/check_pr_labels.yaml@master
+    uses: callruby/ruby-apps-workflows/.github/workflows/main_pr_labels_reusable.yaml@master
     with:
       tag: ${{ github.event.pull_request.head.sha }}
     secrets:
-      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       PAT: ${{secrets.PAT}}
       GPG_PRIVATE_KEY: ${{secrets.GPG_PRIVATE_KEY}}
       GPG_PASSPHRASE: ${{secrets.GPG_PASSPHRASE}}
