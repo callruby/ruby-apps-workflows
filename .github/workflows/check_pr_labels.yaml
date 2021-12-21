@@ -4,14 +4,105 @@ on:
   pull_request:
     types: [labeled, opened, edited]
 
+env:
+  REPOSITORY: "ruby-apps-deploy"
+  REPOSITORY_PROJECT: "ruby-project-deploy"
+  AWS_DEFAULT_REGION: "us-west-1"
+
 jobs:
-  enforce-kind:
+  build:
     name: Pull request environment deployer
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2.0.0
+      
+      - name: Get short SHA
+        id: slug
+        run: |
+          echo "COMMIT=$(echo ${{ github.event.pull_request.head.sha }} | cut -c1-7)" >> $GITHUB_ENV
+          echo ${{ github.event.pull_request.head.sha }} | cut -c1-7    
+    
+      - name: Turnstyle
+        uses: softprops/turnstyle@v1
+        with:
+           continue-after-seconds: 500 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+      - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+        uses: actions/checkout@master
+        with:
+          token: ${{ secrets.PAT }}
+          repository: callruby/${{env.REPOSITORY}}
+          path: ${{env.REPOSITORY}}
+          ref: 'master'
+    
+      #Enforce branch policy
+      - uses: deepakputhraya/action-branch-name@master
+        with:
+          regex: '([a-z])+\/([a-z])+' # Regex the branch should match. This example enforces grouping
+          allowed_prefixes: 'feature,stable,fix,hotfix' # All branches should start with the given prefix
+          ignore: master,develop,dev,release,main # Ignore exactly matching branch names from convention
+          min_length: 5 # Min length of the branch name
+          max_length: 35 # Max length of the branch name
+        
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v4
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+                  
+      - name: (GLOBAL) Debug
+        run: |
+          echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+    
+      #Comment if it has to be run on a public Agent 
+      - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+          #Uncomment if it has to be run on a public Agent    
+          #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: (SHARED) Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1 
+      
+      - name: (DEV) Build, Test, Tag, Push and Deploy to EKS
+        id: Deploy
+        run: |
+          echo "===================================="
+          echo "DEBUG:"
+          echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+          echo "IMAGE_TAG: $COMMIT"
+          echo "EKS_SERVICE: ${EKS_SERVICE}"
+          echo "===================================="
+          echo "Building Docker Image"
+          echo "===================================="
+          echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
+          docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT --build-arg EKS_SERVICE=${EKS_SERVICE} .
+          echo "===================================="
+          echo "Pushing Docker Image"
+          echo "===================================="
+          docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT
+          #echo "::set-env name=IMAGE::${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT"
+        
+      - name: (GLOBAL) Check out ruby-apps-deploy repository
+        uses: actions/checkout@master
+        with:
+          token: ${{ secrets.PAT }}
+          repository: callruby/ruby-apps-deploy
+          path: ruby-apps-deploy
+          ref: 'master'    
+    
       - name: Check if a valid Environment is set and deploy the pr image
         env:
           LABELS: ${{ toJson(github.event.pull_request.labels) }}
+          ECR_REPO: 425300134585.dkr.ecr.us-west-1.amazonaws.com
         run: |
           #if jq --exit-status 'any(test("QA1") or test("QA2") or test("QA3") or test("QA4") or test("QA5") or test("QA6"))' >/dev/null <<< $LABELS; then
           #echo $LABELS
@@ -24,13 +115,39 @@ jobs:
           VALUES=$(jq -c -n --arg v "${ENVS:1}" '$v | split(" ")' | sed 's/[][]//g')
           #echo $VALUES
           IFS=','
+          ls -la ruby-apps-deploy
+          cd ruby-apps-deploy
+          git pull
+          git config user.email "check-action@github"
+          git config user.name "check-action"          
           for VAL in $VALUES; do 
             echo "==================================================================================="
             echo "Updating PR image on the following environments"
-            echo "==================================================================================="
             echo $VAL
+            echo "==================================================================================="
+            VAL=$(echo $VAL | tr '[:upper:]' '[:lower:]')
+            sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:$COMMIT|g" helm/$VAL/values.yaml
+            git add helm/$VAL/values.yaml
           done  
+
+          git commit -m "Update ${EKS_SERVICE} image to ${COMMIT} on deploy folder/s $VALUES"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${COMMIT} on deploy folder/s $VALUES"
+            git push origin master
+            
           #else
             #echo $LABELS
             #echo "::error ::Please set environment/ENVIRONMENT_NAME as label"
           #fi
+
+      - name: Checkout code
+        uses: actions/checkout@v2
