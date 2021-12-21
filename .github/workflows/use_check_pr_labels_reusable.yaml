@@ -1,0 +1,27 @@
+name: Use reusable docker pull request open build label pipeline
+
+on:
+  pull_request:
+    types: [ labeled ]      
+
+jobs:
+  do-it:
+    runs-on: ubuntu-latest #self-hosted
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Simple Task
+        run: echo Hello, world!
+
+  docker:
+    uses: callruby/ruby-apps-workflows/.github/workflows/check_pr_labels.yaml@master
+    with:
+      tag: ${{ github.event.pull_request.head.sha }}
+    secrets:
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      PAT: ${{secrets.PAT}}
+      GPG_PRIVATE_KEY: ${{secrets.GPG_PRIVATE_KEY}}
+      GPG_PASSPHRASE: ${{secrets.GPG_PASSPHRASE}}
+      EKS_SERVICE: ${{secrets.EKS_SERVICE}}
+      AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+      NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
