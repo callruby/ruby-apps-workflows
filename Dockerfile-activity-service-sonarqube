@@ -11,12 +11,14 @@ RUN apt-get update && apt-get install -y openjdk-8-jre && \
     dotnet tool install --global dotnet-sonarscanner
 COPY . ./
 RUN dotnet nuget locals --clear all && \
+    cd ${APP} && \
     dotnet sonarscanner begin \
     /k:"$SONAR_PROJECT_KEY" \
     /d:sonar.host.url="$SONAR_HOST_URL" \
     /d:sonar.login="$SONAR_TOKEN"
 
-RUN dotnet restore ./Activity.sln && \
+RUN cd ..\ && \
+    dotnet restore ./Activity.sln && \
     cd ${APP}.UnitTests && \
     dotnet test && \
     cd ../${APP} && \    
