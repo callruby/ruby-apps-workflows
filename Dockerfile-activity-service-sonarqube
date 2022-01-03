@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
 ENV APP Ruby.Microservices.Activity
 ENV PATH="$PATH:/root/.dotnet/tools"
 
-ARG SONAR_PROJECT_KEY=account-service
+ARG SONAR_PROJECT_KEY=activity-service
 ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
 ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
 WORKDIR /app
@@ -24,7 +24,7 @@ RUN dotnet restore ./Activity.sln && \
     dotnet publish -c Release -o /app/${APP}/out/ && \
     cp -fr $HOME/.nuget /app/${APP}/out/ && \
     dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
-    cd ${APP} \
+    #cd ${APP} \
     dotnet build ${APP}.csproj
 #----------------------------------------------------------------
 
