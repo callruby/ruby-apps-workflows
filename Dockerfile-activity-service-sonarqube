@@ -17,8 +17,7 @@ RUN dotnet nuget locals --clear all && \
     /d:sonar.host.url="$SONAR_HOST_URL" \
     /d:sonar.login="$SONAR_TOKEN"
 
-RUN cd ..\ && \
-    dotnet restore ./Activity.sln && \
+RUN dotnet restore ./Activity.sln && \
     cd ${APP}.UnitTests && \
     dotnet test && \
     cd ../${APP} && \    
