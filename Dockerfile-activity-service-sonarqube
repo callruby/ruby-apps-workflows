@@ -7,7 +7,7 @@ ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
 ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y openjdk && \
+RUN apt-get update && apt-get install -y openjdk-8-jre && \
     dotnet tool install --global dotnet-sonarscanner
 COPY . ./
 RUN dotnet nuget locals --clear all && \
