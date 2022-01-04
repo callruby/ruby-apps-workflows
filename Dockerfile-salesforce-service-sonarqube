@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y openjdk-8-jre && \
     
 COPY . ./
 RUN dotnet nuget locals --clear all && \
-    cd ${APP} && \
+    cd ${APP}/${APP} && \
     dotnet sonarscanner begin \
     /k:"$SONAR_PROJECT_KEY" \
     /d:sonar.host.url="$SONAR_HOST_URL" \
