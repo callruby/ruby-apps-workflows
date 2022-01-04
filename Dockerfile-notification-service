@@ -1,0 +1,26 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
+ENV APP Ruby.Microservices.Notification
+WORKDIR /app
+
+COPY . ./
+RUN dotnet nuget locals --clear all
+
+RUN dotnet restore ./${APP}.sln && \
+    cd ${APP} && \
+    dotnet build ${APP}.csproj && \
+    dotnet publish -c Release -o /app/${APP}/out/ && \
+    cp -fr $HOME/.nuget /app/${APP}/out/
+    
+#    cd ../${APP}.Tests && \
+#    dotnet test && \
+#    cd ../${APP} && \
+#----------------------------------------------------------------
+
+FROM mcr.microsoft.com/dotnet/core/runtime:2.1
+ENV APP Ruby.Microservices.Notification
+WORKDIR /app
+    
+COPY --from=builder /app/${APP}/out/ . 
+#COPY bin/Docker .
+RUN mv -f .nuget/ /root/.nuget
+ENTRYPOINT ["dotnet", "Ruby.Microservices.Notification.dll"]
