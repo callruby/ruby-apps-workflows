@@ -16,11 +16,10 @@ on:
         - qa6
       Tag:
         description: 'Image Tag be deployed Qa1-Qa6'
+        type: string
         required: true
         default: ''
     secrets:
-      GITHUB_TOKEN:
-        required: true
       PAT:
         required: true
       GPG_PRIVATE_KEY:
