@@ -1,7 +1,7 @@
 name: Update App to Stage/Prod.
 
 on:
-  workflow_call:
+  workflow_dispatch: #workflow_call:
     inputs:
       Environment:
         description: 'Environment where has to be deployed'
