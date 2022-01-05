@@ -4,7 +4,7 @@ on: [workflow_dispatch]
 env:
   DRY_RUN: false
   REPOSITORIES: |
-    callruby/zuora-webapi@release_v1
+    callruby/zuora-webapi@release
     
   WORKFLOW_FILES: |
     Dockerfile-zuora-webapi=Dockerfile
@@ -29,5 +29,5 @@ jobs:
           REPOSITORIES: ${{ env.REPOSITORIES }}
           WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
           GITHUB_TOKEN: ${{ secrets.PAT }}
-          PULL_REQUEST: false
+          PULL_REQUEST: true
           AUTO_CREATE_NEW_BRANCH: true
