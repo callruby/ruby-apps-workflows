@@ -7,14 +7,19 @@ env:
     callruby/datasync-service@release
     
   WORKFLOW_FILES: |
-    Dockerfile-datasync-service=Dockerfile
-    #start-datasync-service.sh=Ruby.Microservices.DataSync/confd/start.sh
-    main.yml=main.yml
-    main_pr_closed.yaml=main_pr_closed.yaml
-    main_pr_open.yml=main_pr_open.yml
-    clean_workflows.yaml=clean_workflows.yaml
-    issue_comments.yaml=issue_comments.yaml
-    main_manual.yaml=main_manual.yaml    
+    main_feature_branch.yaml=main_feature_branch.yaml
+    main_manual_ecr_checks_reusable.yaml=main_manual_ecr_checks_reusable.yaml
+    use_clean_workflows_reusable.yaml=use_clean_workflows_reusable.yaml
+    use_issue_comments_reusable.yaml=use_issue_comments_reusable.yaml
+    use_main_external_dockerfile_reusable.yaml=use_main_external_dockerfile_reusable.yaml
+    use_main_pr_labels_reusable.yaml=use_main_pr_labels_reusable.yaml
+  
+#main.yml=main.yml
+#main_pr_closed.yaml=main_pr_closed.yaml
+#main_pr_open.yml=main_pr_open.yml
+#clean_workflows.yaml=clean_workflows.yaml
+#issue_comments.yaml=issue_comments.yaml
+#main_manual.yaml=main_manual.yaml   
         
 jobs:
   Github_Workflow_Sync:
