@@ -35,5 +35,5 @@ jobs:
           REPOSITORIES: ${{ env.REPOSITORIES }}
           WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
           GITHUB_TOKEN: ${{ secrets.PAT }}
-          PULL_REQUEST: false
+          PULL_REQUEST: true
           AUTO_CREATE_NEW_BRANCH: true
