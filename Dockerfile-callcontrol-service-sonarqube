@@ -23,7 +23,7 @@ RUN dotnet nuget locals --clear all && \
 RUN dotnet restore ./${APP}.sln && \
     cd ${APP} && \
     dotnet build ${APP}.csproj && \
-    cd ../${APP}.Integration.Tests && \
+    cd ../Ruby.Microservics.CallControl.Integration.Tests && \
     dotnet test && \
     cd ../${APP} && \     
     dotnet publish -c Release -o /app/${APP}/out/ && \
