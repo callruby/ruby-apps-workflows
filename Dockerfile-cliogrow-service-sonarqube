@@ -21,7 +21,7 @@ RUN dotnet nuget locals --clear all && \
 RUN dotnet restore ./${APP}.sln && \
     cd ${APP} && \
     dotnet build ${APP}.csproj && \
-    cd ../${APP}.Unit.Tests && \
+    cd ../${APP}.Test && \
     dotnet test && \
     cd ../${APP} && \     
     dotnet publish -c Release -o /app/${APP}/out/ && \
