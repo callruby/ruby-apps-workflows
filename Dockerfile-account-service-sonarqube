@@ -24,6 +24,8 @@ RUN dotnet restore ./${APP}.sln && \
     dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
     cd ${APP} \
     dotnet build ${APP}.csproj
+    cd ../${APP}.Unit.Tests && \
+    dotnet test    
 #----------------------------------------------------------------
 
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1
