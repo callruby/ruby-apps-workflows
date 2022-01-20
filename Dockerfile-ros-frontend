@@ -9,7 +9,8 @@ RUN yarn install --no-cache --production && \
 
 COPY . .
 RUN npm rebuild node-sass && \
-    $(yarn bin)/ng build --prod
+    $(yarn bin)/ng build --prod && \
+    $(yarn bin)/ng test
 
 ### STAGE 2: Setup ###
 FROM nginx:1.13.3-alpine
