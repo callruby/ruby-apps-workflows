@@ -15,6 +15,7 @@ COPY . .
 RUN npm rebuild node-sass
 ## Build the angular app in production mode and store the artifacts in dist folder
 RUN $(yarn bin)/ng build --prod
+RUN $(yarn bin)/ng test
 ### STAGE 2: Setup ###
 FROM nginx:1.13.3-alpine
 ## Copy our default nginx config
