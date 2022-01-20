@@ -23,7 +23,7 @@ RUN dotnet restore ./${APP}.sln && \
     dotnet build ${APP}.csproj && \
     cd ../${APP}.Unit.Tests && \
     dotnet test && \
-    cd ../ && \    
+    cd ../${APP} && \    
     dotnet publish -c Release -o /app/${APP}/out/ && \
     dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
     cp -fr $HOME/.nuget /app/${APP}/out/
