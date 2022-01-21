@@ -18,7 +18,7 @@ RUN apt-get update && \
 
 COPY . ./
 
-RUN consul agent -bind=0.0.0.0 &
+#RUN consul agent -bind=0.0.0.0 &
 RUN dotnet nuget locals --clear all && \
     cd ${APP}
     dotnet sonarscanner begin \
