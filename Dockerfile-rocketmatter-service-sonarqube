@@ -7,25 +7,33 @@ ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
 ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y openjdk-8-jre && \
+
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - && \
+    apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
+    apt-get update && \
+    apt-get install -y openjdk-8-jre consul && \
     dotnet tool install --global dotnet-sonarscanner
 
 COPY . ./
+
+RUN consul agent -bind=0.0.0.0 &
 RUN dotnet nuget locals --clear all && \
-    cd ${APP} && \
-    dotnet sonarscanner begin \
-    /k:"$SONAR_PROJECT_KEY" \
-    /d:sonar.host.url="$SONAR_HOST_URL" \
-    /d:sonar.login="$SONAR_TOKEN"
+    cd ${APP}
+    #dotnet sonarscanner begin \
+    #/k:"$SONAR_PROJECT_KEY" \
+    #/d:sonar.host.url="$SONAR_HOST_URL" \
+    #/d:sonar.login="$SONAR_TOKEN"
 
 RUN dotnet restore ./${APP}.sln && \
     cd ${APP} && \
     dotnet build ${APP}.csproj && \
     cd ../${APP}.Test && \
     dotnet test && \
-    cd ../${APP} && \     
+    cd ../${APP} && \
     dotnet publish -c Release -o /app/${APP}/out/ && \
-    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
+    #dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
     cp -fr $HOME/.nuget /app/${APP}/out/
 #----------------------------------------------------------------
 
@@ -40,6 +48,6 @@ RUN chmod +x /etc/confd/start.sh && \
     find /etc/confd -type f | xargs dos2unix && apt-get --purge remove -y dos2unix && rm -rf /var/lib/apt/lists/* && \
     chmod +x /usr/local/bin/confd
 
-COPY --from=builder /app/${APP}/out/ . 
+COPY --from=builder /app/${APP}/out/ .
 RUN mv -f .nuget/ /root/.nuget
 ENTRYPOINT ["/etc/confd/start.sh"]
