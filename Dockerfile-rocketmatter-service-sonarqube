@@ -9,11 +9,11 @@ WORKDIR /app
 
 
 RUN apt-get update && \
-    apt-get install -y software-properties-common && \
-    curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - && \
-    apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
+    #apt-get install -y software-properties-common && \
+    #curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add - && \
+    #apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main" && \
     apt-get update && \
-    apt-get install -y openjdk-8-jre consul && \
+    apt-get install -y openjdk-8-jre && \ #consul
     dotnet tool install --global dotnet-sonarscanner
 
 COPY . ./
@@ -21,10 +21,10 @@ COPY . ./
 RUN consul agent -bind=0.0.0.0 &
 RUN dotnet nuget locals --clear all && \
     cd ${APP}
-    #dotnet sonarscanner begin \
-    #/k:"$SONAR_PROJECT_KEY" \
-    #/d:sonar.host.url="$SONAR_HOST_URL" \
-    #/d:sonar.login="$SONAR_TOKEN"
+    dotnet sonarscanner begin \
+    /k:"$SONAR_PROJECT_KEY" \
+    /d:sonar.host.url="$SONAR_HOST_URL" \
+    /d:sonar.login="$SONAR_TOKEN"
 
 RUN dotnet restore ./${APP}.sln && \
     cd ${APP} && \
@@ -33,7 +33,7 @@ RUN dotnet restore ./${APP}.sln && \
     dotnet test && \
     cd ../${APP} && \
     dotnet publish -c Release -o /app/${APP}/out/ && \
-    #dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
+    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
     cp -fr $HOME/.nuget /app/${APP}/out/
 #----------------------------------------------------------------
 
