@@ -1,6 +1,6 @@
 {
     "datacenter": "awsusw2qa",
-    "data_dir": "C:\\Consul\\data",
+    "data_dir": ".",
     "encrypt": "8HLOOUMwyd0r2fu4SHrnUw==",
     "log_level": "INFO",
     "enable_syslog": false,
