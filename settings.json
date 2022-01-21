@@ -1,6 +1,6 @@
 {
     "datacenter": "awsusw2qa",
-    "data_dir": ".",
+    "data_dir": "/tmp",
     "encrypt": "8HLOOUMwyd0r2fu4SHrnUw==",
     "log_level": "INFO",
     "enable_syslog": false,
