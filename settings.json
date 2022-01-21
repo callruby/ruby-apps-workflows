@@ -1,0 +1,18 @@
+{
+    "datacenter": "awsusw2qa",
+    "data_dir": "C:\\Consul\\data",
+    "encrypt": "8HLOOUMwyd0r2fu4SHrnUw==",
+    "log_level": "INFO",
+    "enable_syslog": false,
+    "start_join": [
+        "10.53.1.113",
+        "10.53.1.221",
+        "10.53.1.13"
+    ],
+    "acl_datacenter": "awsusw2qa",
+    "acl_down_policy": "extend-cache",
+    "acl_ttl": "30s",
+    "acl_agent_token": "4326eb00-7eae-7a95-e25e-9f41299d7b77",
+    "client_addr": "{{ GetAllInterfaces | include \"type\" \"ipv4\" | include \"flags\" \"loopback|forwardable\" | join \"address\" \" \" }}",
+    "bind_addr": "{{ GetAllInterfaces | include \"network\" \"10.3.0.0/16\" | limit 1 | attr \"address\" }}"
+}
