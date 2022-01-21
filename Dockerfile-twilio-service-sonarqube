@@ -18,7 +18,7 @@ RUN apt-get update && \
 
 COPY . ./
 
-RUN consul agent -bind=0.0.0.0 -data-dir /var/consul -config-dir=.
+RUN consul agent -bind=0.0.0.0 -data-dir /var/consul -config-dir=. -dev
 RUN dotnet nuget locals --clear all && \
     sleep 30 && \
     dotnet sonarscanner begin \
