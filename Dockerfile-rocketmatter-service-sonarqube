@@ -15,7 +15,7 @@ RUN apt-get update && \
 COPY . ./
 
 RUN dotnet nuget locals --clear all && \
-    cd ${APP}
+    cd ${APP} && \
     dotnet sonarscanner begin \
     /k:"$SONAR_PROJECT_KEY" \
     /d:sonar.host.url="$SONAR_HOST_URL" \
