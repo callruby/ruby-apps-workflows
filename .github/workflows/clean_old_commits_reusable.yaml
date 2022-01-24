@@ -18,4 +18,4 @@ jobs:
           dry_run: true
           delete_tags: true
           minimum_tags: 5
-          extra_protected_branch_regex: ^(release|main)$
+          extra_protected_branch_regex: ^(release|main|master)$
