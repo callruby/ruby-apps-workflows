@@ -168,14 +168,14 @@ jobs:
             exit 1
           fi
 
-#    - name: Post to a Slack channel
-#      id: slack
-#      uses: slackapi/slack-github-action@v1.17.0
-#      with:
-#        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
-#        slack-message: "Image ${EKS_SERVICE}:${{github.event.inputs.Tag}} was selected to be deployed into $ENV (Pr deployment), result: ${{ job.status }}\n"
-#      env:
-#        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.17.0
+        with:
+          channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+          slack-message: "Image ${EKS_SERVICE}:${{github.event.inputs.Tag}} was selected to be deployed into $ENV (Pr deployment), result: ${{ job.status }}\n"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
       - name: Checkout code
         uses: actions/checkout@v2
