@@ -1,6 +1,9 @@
 name: Cleanup old branches
 on:
   workflow_call:
+    secrets:
+      PAT:
+        required: true  
   
 jobs:
   housekeeping:
