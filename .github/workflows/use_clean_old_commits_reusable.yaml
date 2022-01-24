@@ -1,0 +1,16 @@
+name: Use reusable clean old commits
+
+on:
+  push:
+     
+jobs:
+  do-it:
+    runs-on: ubuntu-latest #self-hosted
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Simple Task
+        run: echo Hello, world!
+
+  docker:
+    uses: callruby/ruby-apps-workflows/.github/workflows/clean_old_commits_reusable.yaml@master
