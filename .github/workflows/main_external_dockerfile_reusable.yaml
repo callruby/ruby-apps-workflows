@@ -157,5 +157,15 @@ jobs:
           git commit -m "Update ${EKS_SERVICE} image to ${IMAGE_TAG} on deploy file"
           git push origin master
         fi 
+        
+#    - name: Post to a Slack channel
+#      id: slack
+#      uses: slackapi/slack-github-action@v1.17.0
+#      with:
+#        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+#        slack-message: "Image ${EKS_SERVICE}:${IMAGE_TAG} was pushed from release branch, result: ${{ job.status }}\n"
+#      env:
+#        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
     - name: Checkout code
       uses: actions/checkout@v2
