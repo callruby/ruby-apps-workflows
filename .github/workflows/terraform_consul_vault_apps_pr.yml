@@ -26,7 +26,7 @@ jobs:
         run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
         
   terraform:
-    name: 'TerraformPr'
+    name: 'Terraform'
     runs-on: self-hosted
     needs: cleanup
     #container:
@@ -58,6 +58,49 @@ jobs:
         path: ${{env.REPOSITORY}}
         ref: 'master'
 
+
+    - name: Obtain Github Secrets list filter and verify them
+      shell: bash
+      #if: contains(github.event.inputs.Environment, 'Qa')
+      run: |
+        github_secrets=$(echo ${SECRETS} | jq 'with_entries(select(.key|test("GPG_")|not))|with_entries(select(.key|test("VAULT_")|not))|with_entries(select(.key|test("_HTTP_TOKEN")|not))|with_entries(select(.key|test("_KUBECONFIG")|not))|del(.PFX_CERT)|del(.NUGET_CONFIG)|del(.github_token)|del (.AWS_DEFAULT_REGION)|del (.EKS_SERVICE)|del (.PAT)|del (.SLACK_WEBHOOK)')
+        echo "=======DEBUG GITHUB SECRET LIST=============================================================="
+        echo $github_secrets
+        echo "============================================================================================="
+        echo "TF_VAR_github_secrets=$(echo ${github_secrets})" >> $GITHUB_ENV
+        echo $github_secrets >> SECRETS 
+        echo "======DEBUG TERRAFORM VALUE LIST============================================================="
+        #USED_VALUES=$(grep "module.application1.github_secrets" *.tf | awk 'NF' | sed 's/ //')
+        USED_VALUES=$(grep "module.application1.github_secrets" *.tf | awk {'print $2 $3 $4'} | awk 'NF' | sed 's/ //')
+        echo "============================================================================================="
+        IFS=$'\n'
+        for values in $USED_VALUES
+        do
+          #echo "=========DEBUG 4========================================================================"
+          #echo $values
+          #echo $values | cut -d'.' -f4-
+          #echo $values | cut -d'.' -f4- | sed 's/#.*//'
+          #echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g'
+          VALUE=$(echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g' | sed 's/ //' | sed s/'\s'//g)
+          echo "======================================================================================"
+          echo "Comparing $VALUE if is on the Github Secrets "
+          echo "cat SECRETS | grep \"$VALUE\""
+          echo "======================================================================================"
+          COMPARE=$(grep "$VALUE" SECRETS || true)
+         if [ -n "$COMPARE" ]; then
+           echo "======================================================================================"
+           echo "$VALUE EXIST ON GITHUB SECRET AND ON THE MAIN.TF FILE"
+           echo "======================================================================================"
+         else
+           echo "======================================================================================"
+           echo "$VALUE DONT EXIST ON GITHUB SECRET BUT IS ON THE MAIN.TF FILE"
+           echo "======================================================================================"
+           exit 1
+         fi          
+        done
+      env:
+        SECRETS: ${{ toJson(secrets) }}        
+        
     - name: (GLOBAL) Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -96,3 +139,12 @@ jobs:
         tf_actions_version: ${{ env.TF_VERSION }}
         tf_actions_subcommand: 'validate'
         tf_actions_working_dir: '.'        
+
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "Pull request pipeline for ruby-apps-consul-vault was triggered, result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
