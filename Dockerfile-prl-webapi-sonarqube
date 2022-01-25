@@ -44,5 +44,5 @@ RUN chmod +x /etc/confd/start.sh && \
 COPY --from=builder /app/${APP}/out/ . 
 RUN mv -f .nuget/ /root/.nuget
 EXPOSE 443
-EXPOSE 8080
+EXPOSE 80
 ENTRYPOINT ["/etc/confd/start.sh"]
