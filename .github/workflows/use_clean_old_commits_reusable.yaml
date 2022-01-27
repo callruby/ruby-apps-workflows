@@ -1,7 +1,8 @@
 name: Use reusable clean old commits
 
 on:
-  push:
+  schedule:
+  - cron: '30 1 * * 6'
      
 jobs:
   do-it:
