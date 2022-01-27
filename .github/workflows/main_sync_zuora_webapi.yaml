@@ -14,6 +14,7 @@ env:
     use_issue_comments_reusable.yaml=use_issue_comments_reusable.yaml
     use_main_external_dockerfile_reusable.yaml=use_main_external_dockerfile_reusable.yaml
     use_main_pr_labels_reusable.yaml=use_main_pr_labels_reusable.yaml
+    use_clean_old_commits_reusable.yaml=use_clean_old_commits_reusable.yaml
         
 jobs:
   Github_Workflow_Sync:
@@ -30,4 +31,4 @@ jobs:
           WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
           GITHUB_TOKEN: ${{ secrets.PAT }}
           PULL_REQUEST: true
-          AUTO_CREATE_NEW_BRANCH: true
+          AUTO_CREATE_NEW_BRANCH: false
