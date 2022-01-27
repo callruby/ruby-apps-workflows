@@ -4,7 +4,7 @@ on: [workflow_dispatch]
 env:
   DRY_RUN: false
   REPOSITORIES: |
-    callruby/notification-service@release_v1
+    callruby/notification-service@release
     
   WORKFLOW_FILES: |
     main_feature_branch.yaml=main_feature_branch.yaml
@@ -13,6 +13,7 @@ env:
     use_issue_comments_reusable.yaml=use_issue_comments_reusable.yaml
     use_main_external_dockerfile_reusable.yaml=use_main_external_dockerfile_reusable.yaml
     use_main_pr_labels_reusable.yaml=use_main_pr_labels_reusable.yaml
+    use_clean_old_commits_reusable.yaml=use_clean_old_commits_reusable.yaml
   
 #main.yml=main.yml
 #main_pr_closed.yaml=main_pr_closed.yaml
