@@ -9,7 +9,9 @@ name: Build Feature branch image
 
 env:
   REPOSITORY: "ruby-apps-deploy"
+  REPOSITORY_WORKFLOW: "ruby-apps-workflows"
   AWS_DEFAULT_REGION: "us-west-1"
+  
 jobs:
   build:
     runs-on: self-hosted
@@ -32,6 +34,15 @@ jobs:
         path: ${{env.REPOSITORY}}
         ref: 'master'
         fetch-depth: 1
+        
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_WORKFLOW}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_WORKFLOW}}
+        path: ${{env.REPOSITORY_WORKFLOW}}
+        ref: 'master'
+        fetch-depth: 1        
                   
     - name: (GLOBAL) Configure Service name.
       run: |
@@ -73,6 +84,8 @@ jobs:
         echo "===================================="
         echo '${{ secrets.PFX_CERT }}' | base64 --decode >> ssl_cert.pfx
         echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
+        ls -la ruby-apps-workflows/Dockerfile*
+        cp -f ruby-apps-workflows/Dockerfile-${EKS_SERVICE} Dockerfile        
         echo "Building Docker Image"
         echo "===================================="
         docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG --build-arg EKS_SERVICE=${EKS_SERVICE} .
