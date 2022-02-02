@@ -5,7 +5,7 @@ on:
         type: string
     secrets:
       GITHUB_TOKEN:
-        required: true    
+        required: false    
       PAT:
         required: true
       GPG_PRIVATE_KEY:
