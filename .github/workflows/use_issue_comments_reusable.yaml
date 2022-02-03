@@ -19,7 +19,7 @@ jobs:
     with:
       tag: $GITHUB_RUN_NUMBER
     secrets:
-      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      #GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       PAT: ${{secrets.PAT}}
       GPG_PRIVATE_KEY: ${{secrets.GPG_PRIVATE_KEY}}
       GPG_PASSPHRASE: ${{secrets.GPG_PASSPHRASE}}
