@@ -4,8 +4,6 @@ on:
       tag: 
         type: string
     secrets:
-      GITHUB_TOKEN:
-        required: true
       PAT:
         required: true
       GPG_PRIVATE_KEY:
