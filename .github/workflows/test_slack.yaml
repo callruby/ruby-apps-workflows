@@ -1,0 +1,16 @@
+name: Cleaning reports
+on:
+  workflow_dispatch:
+  
+  jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: proj-dev-ops
+        slack-message: "Forgotten which token i have to set"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
