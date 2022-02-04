@@ -63,7 +63,6 @@ jobs:
     - name: (GLOBAL) Configure Service name.
       run: |
         echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
-        echo "SLACK_BOT_TOKEN=$(echo eG94cC0yNzE1MjkzODU0LTExMzkwNzU2OTEwMTAtMjk3NzM2ODg5OTQ4OS1jMGM5YjkxZTMzNDNhYzZlYjg5YmE5NDkwMmZhZWEyOAo= | base64 -d )" >> $GITHUB_ENV
    
    #Comment if it has to be run on a public Agent 
     - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
@@ -166,9 +165,9 @@ jobs:
       uses: slackapi/slack-github-action@v1.17.0
       with:
         channel-id: C20HTLNRW #${{ secrets.SLACK_BOT_CHANNEL }}
-        slack-message: "Image ${{secrets.EKS_SERVICE}}:${IMAGE_TAG} was pushed from release branch, result: ${{ job.status }}\n"
+        slack-message: "A new Image for ${{ github.event.repository.name }} was pushed from release branch, result: ${{ job.status }}\n"
       env:
-        SLACK_BOT_TOKEN: $SLACK_BOT_TOKEN
+        SLACK_BOT_TOKEN: xoxp-2715293854-1139075691010-2977368899489-c0c9b91e3343ac6eb89ba94902faea28 #Old
 
     - name: Checkout code
       uses: actions/checkout@v2
