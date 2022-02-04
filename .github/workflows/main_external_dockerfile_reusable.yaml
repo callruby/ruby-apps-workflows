@@ -41,7 +41,6 @@ jobs:
       with:
          continue-after-seconds: 500 
       env: |
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         echo "SLACK_BOT_TOKEN=${{secrets.SLACK_BOT_TOKEN}}" >> $GITHUB_ENV
         echo "SLACK_BOT_CHANNEL=${{secrets.SLACK_BOT_CHANNEL}}" >> $GITHUB_ENV
                       
