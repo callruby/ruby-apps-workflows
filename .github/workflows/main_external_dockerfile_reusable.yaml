@@ -63,7 +63,7 @@ jobs:
     - name: (GLOBAL) Configure Service name.
       run: |
         echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
-        echo "SLACK_BOT_TOKEN=$(echo eG94cC0yNzE1MjkzODU0LTExMzkwNzU2OTEwMTAtMjk3NzM2ODg5OTQ4OS1jMGM5YjkxZTMzNDNhYzZlYjg5YmE5NDkwMmZhZWEyOAo= | base64 -d ) >> $GITHUB_ENV
+        echo "SLACK_BOT_TOKEN=$(echo eG94cC0yNzE1MjkzODU0LTExMzkwNzU2OTEwMTAtMjk3NzM2ODg5OTQ4OS1jMGM5YjkxZTMzNDNhYzZlYjg5YmE5NDkwMmZhZWEyOAo= | base64 -d )" >> $GITHUB_ENV
    
    #Comment if it has to be run on a public Agent 
     - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
