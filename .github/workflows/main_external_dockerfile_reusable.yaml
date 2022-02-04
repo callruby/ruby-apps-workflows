@@ -31,6 +31,7 @@ env:
   AWS_DEFAULT_REGION: "us-west-1"
 jobs:
   build:
+    environment: default
     runs-on: self-hosted
     #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
     steps:
