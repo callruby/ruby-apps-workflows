@@ -1,0 +1,59 @@
+name: Check for workflows
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '0 */4 * * *'
+
+  push:
+    branches: 
+      - main
+
+jobs:
+  check:
+    runs-on: self-hosted #ubuntu-latest
+    steps:
+
+    - name: Check out
+      uses: actions/checkout@v2
+
+
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'
+
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:    
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    #- name: (SHARED) Login to Amazon ECR
+      #id: login-ecr
+      #uses: aws-actions/amazon-ecr-login@v1
+      
+    - name: Generate
+      env:
+        PAT: ${{ secrets.PAT }}
+      run: |
+        chmod +x generate.sh
+        ./generate.sh #\
+        
+    - name: Push Changes
+      run: |
+        #  -i https://raw.githubusercontent.com/ModFi/action-dashboard/main/samples/repos
+        ls -la
+        if [[ -z "$(git status -s -- README.md)" ]] && [[ -z "$(git status -s -- *.md)" ]]; then
+          echo No changes to commit
+          exit 0
+        fi
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git add README.md
+        git add *.md
+        git commit -m "Update dashboard markdown"
+        git push origin main
