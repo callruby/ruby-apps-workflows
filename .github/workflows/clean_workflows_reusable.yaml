@@ -15,7 +15,8 @@ jobs:
     timeout-minutes: 10
 
     steps:
-    - uses: AutoModality/action-clean@v1
+    - name: Clean Root workspace directory
+      uses: AutoModality/action-clean@v1
     
     - name: Prune cancelled/skipped runs
       uses: actions/github-script@v4
