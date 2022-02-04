@@ -1,0 +1,26 @@
+on:
+  workflow_dispatch:  
+      
+name: Slack test
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: (GLOBAL) Configure Service name.
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: C024R1PM6N6
+        slack-message: "test"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.EKS_SERVICE }}
+
+    - name: Checkout code
+      uses: actions/checkout@v2
