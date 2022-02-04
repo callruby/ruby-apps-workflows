@@ -40,8 +40,10 @@ jobs:
       uses: softprops/turnstyle@v1
       with:
          continue-after-seconds: 500 
-      env:
+      env: |
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        echo "SLACK_BOT_TOKEN=${{secrets.SLACK_BOT_TOKEN}}" >> $GITHUB_ENV
+        echo "SLACK_BOT_CHANNEL=${{secrets.SLACK_BOT_CHANNEL}}" >> $GITHUB_ENV
                       
     - name: (GLOBAL) Check out ${{env.REPOSITORY_WORKFLOW}} repository
       uses: actions/checkout@master
@@ -164,10 +166,10 @@ jobs:
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
       with:
-        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        channel-id: ${secrets.SLACK_BOT_CHANNEL}
         slack-message: " ${{ github.event.repository.name }} was pushed a new image builded from release branch, result: ${{ job.status }}\n"
       env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
 
     - name: Checkout code
       uses: actions/checkout@v2
