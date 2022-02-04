@@ -22,8 +22,9 @@ on:
         required: true
       NUGET_CONFIG:
         required: true
+      SLACK_BOT_TOKEN:
+        required: false
       
-  
 name: Create Tag & Release After Dev Deploy
 
 env:
