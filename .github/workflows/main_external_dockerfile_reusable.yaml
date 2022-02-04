@@ -168,7 +168,6 @@ jobs:
         slack-message: " ${{ github.event.repository.name }} was pushed a new image builded from release branch, result: ${{ job.status }}\n"
       env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
     - name: Checkout code
       uses: actions/checkout@v2
