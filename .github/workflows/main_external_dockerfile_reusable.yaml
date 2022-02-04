@@ -167,7 +167,7 @@ jobs:
         channel-id: C20HTLNRW #${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "A new Image for ${{ github.event.repository.name }} was pushed from release branch, result: ${{ job.status }}\n"
       env:
-        SLACK_BOT_TOKEN: "xoxb-2715293854-2964725009954-iS2Gz07322IngNzYcDOK7wdJ" #Old
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
     - name: Checkout code
       uses: actions/checkout@v2
