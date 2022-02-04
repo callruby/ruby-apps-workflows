@@ -81,8 +81,10 @@ jobs:
     - name: Get short SHA
       id: slug
       run: |
-        echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
-        echo ${GITHUB_SHA} | cut -c1-7
+        #echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
+        echo "IMAGE_TAG=$(echo "GHRC$(date +%Y%m%dT%H.%M.%S)")" >> $GITHUB_ENV
+        #echo ${GITHUB_SHA} | cut -c1-7
+        echo "IMAGE_TAG=$(echo "GHRC$(date +%Y%m%dT%H.%M.%S)")"
 
     - name: (SHARED) Login to Amazon ECR
       id: login-ecr
