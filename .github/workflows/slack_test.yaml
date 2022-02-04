@@ -20,7 +20,7 @@ jobs:
         channel-id: C024R1PM6N6
         slack-message: "test"
       env:
-        SLACK_BOT_TOKEN: ${{ secrets.EKS_SERVICE }}
+        SLACK_BOT_TOKEN: '${EKS_SERVICE}'
 
     - name: Checkout code
       uses: actions/checkout@v2
