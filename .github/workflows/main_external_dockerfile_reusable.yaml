@@ -24,6 +24,8 @@ on:
         required: true
       SLACK_BOT_TOKEN:
         required: false
+      SLACK_BOT_CHANNEL:
+        required: false
       
 name: Create Tag & Release After Dev Deploy
 
@@ -166,7 +168,7 @@ jobs:
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
       with:
-        channel-id: C20HTLNRW #${{ secrets.SLACK_BOT_CHANNEL }}
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "A new Image for ${{ github.event.repository.name }} was pushed from release branch, result: ${{ job.status }}\n"
       env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
