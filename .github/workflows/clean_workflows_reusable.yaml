@@ -59,8 +59,9 @@ jobs:
           // because we track the duration of runs over time
 
           const workflows = [
-            'main_pr_closed.yaml',
-            'main_pr_open.yml'
+            'use_issue_comments_reusable.yaml',
+            'use_main_pr_labels_reusable.yaml',
+            'main_feature_branch.yaml'
           ]
 
           let runs_to_delete = [];
