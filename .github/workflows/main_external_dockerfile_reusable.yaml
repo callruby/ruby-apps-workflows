@@ -67,6 +67,8 @@ jobs:
     - name: (GLOBAL) Configure Service name.
       run: |
         echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+        TOK=$(echo U2FsdGVkX199nuI67lwrZSWjHMAQFjbImCbbs+LJjdNSpkbMwAb2bgjE0Vz92Jus/dwHpV/G8NZ5fEeFRUB/9+8rDExsa2ORmzKThBtUPLMmi79FHuIQ+KyHZk5F2DFi | openssl enc -aes256 -base64 -d -k ${{secrets.GPG_PRIVATE_KEY}}| grep xox)
+        echo "SLTOK=$(echo $TOK)" >> $GITHUB_ENV        
    
    #Comment if it has to be run on a public Agent 
     - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
@@ -168,10 +170,10 @@ jobs:
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
       with:
-        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        channel-id: C024R1PM6N6 #${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "A new Image for ${{ github.event.repository.name }} was pushed from release branch, result: ${{ job.status }}\n"
       env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        SLACK_BOT_TOKEN: ${{ env.SLTOK }} #${{ secrets.SLACK_BOT_TOKEN }}
         #see https://github.com/callruby/blueprint-aws-terraform-operator-samples/blob/main/.github/workflows/slack_test.yaml
     - name: Checkout code
       uses: actions/checkout@v2
