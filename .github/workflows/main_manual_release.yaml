@@ -47,7 +47,7 @@ jobs:
     - name: (GLOBAL) Configure Global Variables.
       run: |
         echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
-        TOK=$(echo U2FsdGVkX199nuI67lwrZSWjHMAQFjbImCbbs+LJjdNSpkbMwAb2bgjE0Vz92Jus/dwHpV/G8NZ5fEeFRUB/9+8rDExsa2ORmzKThBtUPLMmi79FHuIQ+KyHZk5F2DFi | openssl enc -aes256 -base64 -d -k ${{secrets.GPG_PRIVATE_KEY}}| grep xox)
+        TOK=$(echo U2FsdGVkX199nuI67lwrZSWjHMAQFjbImCbbs+LJjdNSpkbMwAb2bgjE0Vz92Jus/dwHpV/G8NZ5fEeFRUB/9+8rDExsa2ORmzKThBtUPLMmi79FHuIQ+KyHZk5F2DFi | openssl enc -aes256 -base64 -d -k ${{secrets.GPG_PASSPHRASE}}| grep xox)
         echo "SLTOK=$(echo $TOK)" >> $GITHUB_ENV        
    
    #Comment if it has to be run on a public Agent 
