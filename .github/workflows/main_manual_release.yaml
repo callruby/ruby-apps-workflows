@@ -92,10 +92,10 @@ jobs:
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
       with:
-        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        channel-id: C024R1PM6N6  #${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "The release image ${{env.IMAGE_TAG}} for ${{ github.event.repository.name }} was updated , result: ${{ job.status }}\n"
       env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        SLACK_BOT_TOKEN: ${{ env.SLTOK }} #${{ secrets.SLACK_BOT_TOKEN }}
         #see https://github.com/callruby/blueprint-aws-terraform-operator-samples/blob/main/.github/workflows/slack_test.yaml
     - name: Checkout code
       uses: actions/checkout@v2
