@@ -7,8 +7,7 @@ on:
         required: true
         default: 'GHRC_'
       
-name: Create Tag & Release After Dev Deploy
-
+name: Update release image.
 env:
   REPOSITORY_WORKFLOW: "ruby-apps-workflows"
   AWS_DEFAULT_REGION: "us-west-1"
@@ -44,7 +43,7 @@ jobs:
         git_user_signingkey: true
         git_commit_gpgsign: true
                   
-    - name: (GLOBAL) Configure Service name.
+    - name: (GLOBAL) Configure Global Variables.
       run: |
         echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
         TOK=$(echo U2FsdGVkX199nuI67lwrZSWjHMAQFjbImCbbs+LJjdNSpkbMwAb2bgjE0Vz92Jus/dwHpV/G8NZ5fEeFRUB/9+8rDExsa2ORmzKThBtUPLMmi79FHuIQ+KyHZk5F2DFi | openssl enc -aes256 -base64 -d -k ${{secrets.GPG_PRIVATE_KEY}}| grep xox)
@@ -56,7 +55,7 @@ jobs:
       with:
         aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
             
-    - name: Get short SHA
+    - name: Set Image Tag
       id: slug
       run: |
         echo "IMAGE_TAG=$(echo "${{github.event.inputs.Environment}}" >> $GITHUB_ENV
@@ -87,27 +86,7 @@ jobs:
         echo "Pushing Docker Image"
         echo "===================================="
         docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG
-        
-    - name: (GLOBAL) Check out ruby-apps-deploy repository
-      uses: actions/checkout@master
-      with:
-        token: ${{ secrets.PAT }}
-        repository: callruby/ruby-apps-deploy
-        path: ruby-apps-deploy
-        ref: 'master'
-
-    - uses: imranismail/setup-kustomize@v1
-    
-    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
-      id: UpdateTag
-      run: |
-        echo "===================================="
-        echo "DEBUG:"
-        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
-        echo "IMAGE_TAG: $IMAGE_TAG"
-        echo "EKS_SERVICE: ${EKS_SERVICE}"
-        echo "====================================" 
-        
+                
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
