@@ -141,7 +141,7 @@ jobs:
       uses: slackapi/slack-github-action@v1.17.0
       with:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
-        slack-message: "Image ${{secrets.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into ${{ github.event.inputs.Environment }} (manual deployment), result: ${{ job.status }}\n"
+        slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into ${{ github.event.inputs.Environment }} (manual deployment), result: ${{ job.status }}\n"
       env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         
