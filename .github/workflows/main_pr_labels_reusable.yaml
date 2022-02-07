@@ -17,6 +17,11 @@ on:
         required: true
       NUGET_CONFIG:
         required: true
+      SLACK_BOT_TOKEN:
+        required: false
+      SLACK_BOT_CHANNEL:
+        required: false
+        
 env:
   REPOSITORY: "ruby-apps-deploy"
   REPOSITORY_PROJECT: "ruby-project-deploy"
@@ -70,6 +75,8 @@ jobs:
       - name: (GLOBAL) Debug
         run: |
           echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+          TOK=$(echo U2FsdGVkX199nuI67lwrZSWjHMAQFjbImCbbs+LJjdNSpkbMwAb2bgjE0Vz92Jus/dwHpV/G8NZ5fEeFRUB/9+8rDExsa2ORmzKThBtUPLMmi79FHuIQ+KyHZk5F2DFi | openssl enc -aes256 -base64 -d -k ${{secrets.GPG_PRIVATE_KEY}}| grep xox)
+          echo "SLTOK=$(echo $TOK)" >> $GITHUB_ENV          
     
       #Comment if it has to be run on a public Agent 
       - name: (GLOBAL) Configure AWS credentials
@@ -172,10 +179,10 @@ jobs:
         id: slack
         uses: slackapi/slack-github-action@v1.17.0
         with:
-          channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+          channel-id: C024R1PM6N6 #${{ secrets.SLACK_BOT_CHANNEL }}
           slack-message: "Image ${EKS_SERVICE}:${{github.event.inputs.Tag}} was selected to be deployed into $ENV (Pr deployment), result: ${{ job.status }}\n"
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ env.SLTOK }} #${{ secrets.SLACK_BOT_TOKEN }}
 
       - name: Checkout code
         uses: actions/checkout@v2
