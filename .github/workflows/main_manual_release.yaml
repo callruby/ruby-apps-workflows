@@ -16,7 +16,7 @@ jobs:
     environment: default
     runs-on: self-hosted
     #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/release'
     steps:
     - uses: actions/checkout@v2.0.0
 
