@@ -1,0 +1,57 @@
+name: Create Github removal Image
+
+on: [workflow_dispatch]
+ 
+env:
+  AWS_DEFAULT_REGION: "us-west-1"
+  
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: (GLOBAL) Debug
+      run: |
+        echo "EKS_SERVICE=busybox" >> $GITHUB_ENV
+
+   #Comment if it has to be run on a public Agent 
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        #Uncomment if it has to be run on a public Agent    
+        #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Build Github removal Image
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        echo "Building Docker Image"
+        echo "===================================="
+        cd github
+        docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:removal --build-arg RUNNER_CFG_PAT=${{ secrets.PAT }} .
+        echo "===================================="
+        echo "Pushing Docker Image"
+        echo "===================================="
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:removal
+                      
+    - name: Checkout code
+      uses: actions/checkout@v2
