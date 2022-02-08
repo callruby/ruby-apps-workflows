@@ -4,10 +4,6 @@ on:
     branches: 
       - feature/**
       - feature/*
-    branches-ignore:
-      - feature/release
-      - feature/production
-      - feature/main
  
 name: Build Feature branch image
 
@@ -19,7 +15,8 @@ env:
 jobs:
   build:
     runs-on: self-hosted
-    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent 
+    if: ${{ ! contains('refs/heads/feature/release', github.ref) && ! contains('refs/heads/feature/production', github.ref) }} 
     steps:
     - uses: actions/checkout@v2.0.0
 
@@ -51,7 +48,7 @@ jobs:
     - name: (GLOBAL) Configure Service name.
       run: |
         echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
-   
+        echo "${{github.ref}}"
    #Comment if it has to be run on a public Agent 
     - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
       uses: aws-actions/configure-aws-credentials@v1
