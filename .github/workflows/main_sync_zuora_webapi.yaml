@@ -7,7 +7,6 @@ env:
     callruby/zuora-webapi@release
     
   WORKFLOW_FILES: |
-    Dockerfile-zuora-webapi=Dockerfile
     main_feature_branch.yaml=main_feature_branch.yaml
     main_manual_ecr_checks_reusable.yaml=main_manual_ecr_checks_reusable.yaml
     use_clean_workflows_reusable.yaml=use_clean_workflows_reusable.yaml
