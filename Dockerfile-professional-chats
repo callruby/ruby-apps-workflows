@@ -3,8 +3,7 @@ FROM 425300134585.dkr.ecr.us-west-1.amazonaws.com/chat-web-base:rc
 COPY . /opt/app
 
 # .run webpack build
-RUN npm run build:prod && \
-    chmod +x /opt/app/start.sh
+RUN npm run build:prod
 EXPOSE 8000
 
 CMD ["npm", "run", "awsstart"]
