@@ -24,3 +24,5 @@ jobs:
       EKS_SERVICE: ${{secrets.EKS_SERVICE}}
       AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
       NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
+      SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}} 
+      SLACK_BOT_CHANNEL: ${{secrets.SLACK_BOT_CHANNEL}}
