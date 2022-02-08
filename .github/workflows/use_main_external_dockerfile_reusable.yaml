@@ -31,3 +31,5 @@ jobs:
       SSL_PEM_CERT: ${{secrets.SSL_PEM_CERT}}
       SSL_PEM_KEY: ${{secrets.SSL_PEM_KEY}}
       NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
+      SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}} 
+      SLACK_BOT_CHANNEL: ${{secrets.SLACK_BOT_CHANNEL}}
