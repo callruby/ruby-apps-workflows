@@ -4,6 +4,10 @@ on:
     branches: 
       - feature/**
       - feature/*
+    branches-ignore:
+      - feature/release
+      - feature/production
+      - feature/main
  
 name: Build Feature branch image
 
