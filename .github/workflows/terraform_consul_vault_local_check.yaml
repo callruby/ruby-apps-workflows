@@ -1,0 +1,247 @@
+on:
+  workflow_dispatch:
+    inputs:
+      Tag:
+        description: 'Branch to use from ruby-local-environment repository in order to test the local.tf file that is stored there'
+        type: string
+        required: true
+        default: ''  
+ 
+name: 'Test local.tf changes from ruby-local-environment on a new consul'
+
+env:
+  TF_VERSION: "0.15.3"
+  REPOSITORY: "blueprint-consul-vault"
+  REPOSITORY_CHART: "ruby-apps-charts"
+  REPOSITORY_LOCAL: "ruby-local-environment"
+  
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  k3d:
+    name: 'Rise K3D Cluster and run Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+    steps:
+       
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
+       
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+        
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_LOCAL}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_LOCAL}}
+        path: ${{env.REPOSITORY_LOCAL}}
+        ref: ${{github.event.inputs.Tag}}        
+        
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+        
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_CHART}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_CHART}}
+        path: ${{env.REPOSITORY_CHART}}
+        ref: 'master'        
+        
+    - name: (GLOBAL) Define variables
+      id: Variables
+      run: |	  
+        echo "CONSUL_HTTP_TOKEN=${{secrets.CONSUL_HTTP_TOKEN}}" >> $GITHUB_ENV
+        echo "VAULT_TOKEN=${{secrets.VAULT_TOKEN}}" >> $GITHUB_ENV        
+                
+    - uses: azure/setup-helm@v1
+      id: install
+      with:
+        version: 3.6.3
+        
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'        
+
+    - name: Consul Setup
+      run: |
+        HASHICORP_RELEASES=https://releases.hashicorp.com
+        CONSUL_VERSION=1.11.2
+        consulArch='amd64'
+        rm -f /tmp/build/consul
+        wget ${HASHICORP_RELEASES}/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_${consulArch}.zip
+        unzip -d /tmp/build consul_${CONSUL_VERSION}_linux_${consulArch}.zip
+        /tmp/build/consul agent -server -client="0.0.0.0" -data-dir=/tmp/consul -dev &
+        sleep 10
+        ps -eaf
+        
+    - name: Preparing folder and files
+      run: |
+        cp -fr ${{env.REPOSITORY_LOCAL}}/terraform/* .
+        sed -i main.tf -re '1,10d'
+        sed -i main.tf -re '1043,1055d'
+        sed -i 's,module.application1.github_secrets.QA6_LDAP_PASSWORD,\"SOME_PASS\",g' *.tf
+        sed -i 's,application1,application2,g' blueprint-consul-vault/main.tf
+        sed -i 's,localhost,http://172.17.0.1,g' blueprint-consul-vault/main.tf
+        sed -i 's,app-team1,app-team3,g' blueprint-consul-vault/variables.tf
+
+        echo -e "\n" >> variables.tf
+        echo "variable \"templating_dev\" { default = {} }" >> variables.tf
+        rm -f application.tf
+        cat <<EOF >> application.tf
+
+        locals {
+          merged_keys_prefix_json_template = concat(
+          var.prefix_keys,
+          local.qa1_merged_keys,
+          local.qa2_merged_keys,
+          local.qa3_merged_keys,
+          local.qa4_merged_keys,
+          local.qa5_merged_keys,
+          local.qa6_merged_keys,
+          local.prod_merged_keys,
+          local.local_merged_keys
+         )
+        
+         merged_keys_prefix_json_template_appsetting = concat(
+         var.keys,
+         local.qa1_app_setting_merged_keys,
+         local.qa2_app_setting_merged_keys,
+         local.qa3_app_setting_merged_keys,
+         local.qa4_app_setting_merged_keys,
+         local.qa5_app_setting_merged_keys,
+         local.qa6_app_setting_merged_keys,
+         local.prod_app_setting_merged_keys,
+         local.local_app_setting_merged_keys
+        )
+        }
+        EOF
+        
+        cat <<EOF >> local.tf
+        
+        terraform {
+          backend "s3" {
+            bucket = "consul-state-ruby"
+            key    = "Consul-terraform-test-consul.tfstate"
+            region = "us-west-1"
+          }
+        }
+        EOF
+        cat <<EOF >> local.tf
+        
+        module "dev_environment" {
+         source      = "./blueprint-consul-vault/read"
+         environment = "dev"
+        }
+        EOF
+        
+    - name: Obtain Github Secrets list filter and verify them
+      shell: bash
+      run: |
+        github_secrets=$(echo ${SECRETS} | jq 'with_entries(select(.key|test("GPG_")|not))|with_entries(select(.key|test("VAULT_")|not))|with_entries(select(.key|test("_HTTP_TOKEN")|not))|with_entries(select(.key|test("_KUBECONFIG")|not))|del(.PFX_CERT)|del(.NUGET_CONFIG)|del(.github_token)|del (.AWS_DEFAULT_REGION)|del (.EKS_SERVICE)|del (.PAT)|del (.SLACK_WEBHOOK)')
+        echo "=======DEBUG GITHUB SECRET LIST=============================================================="
+        echo $github_secrets
+        echo "============================================================================================="
+        echo "TF_VAR_github_secrets=$(echo ${github_secrets})" >> $GITHUB_ENV
+        echo $github_secrets >> SECRETS 
+        echo "======DEBUG TERRAFORM VALUE LIST============================================================="
+        USED_VALUES=$(grep "module.application1.github_secrets" *.tf | awk {'print $2 $3 $4'} | awk 'NF' | sed 's/ //')
+        echo "============================================================================================="
+        IFS=$'\n'
+        for values in $USED_VALUES
+        do
+          VALUE=$(echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g' | sed 's/ //' | sed s/'\s'//g)
+          echo "======================================================================================"
+          echo "Comparing $VALUE if is on the Github Secrets "
+          echo "cat SECRETS | grep \"$VALUE\""
+          echo "======================================================================================"
+          COMPARE=$(grep "$VALUE" SECRETS || true)
+         if [ -n "$COMPARE" ]; then
+           echo "======================================================================================"
+           echo "$VALUE EXIST ON GITHUB SECRET AND ON THE MAIN.TF FILE"
+           echo "======================================================================================"
+         else
+           echo "======================================================================================"
+           echo "$VALUE DONT EXIST ON GITHUB SECRET BUT IS ON THE MAIN.TF FILE"
+           echo "======================================================================================"
+           exit 1
+         fi          
+        done
+        rm -f main.tf
+      env:
+        SECRETS: ${{ toJson(secrets) }}      
+              
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+    
+    - name: 'Terraform Init'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'init'
+        tf_actions_working_dir: '.'      
+
+    - name: .terraform permissions
+      run: |
+        ls -la
+        pwd
+        sudo chown -R runner:runner .terraform
+        
+    - name: 'Terraform Validate'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'validate'
+        tf_actions_working_dir: '.'          
+
+    - name: 'Terraform Destroy'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'destroy'
+        tf_actions_working_dir: '.'
+
+    - name: 'Terraform Plan'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'plan'
+        tf_actions_working_dir: '.'        
+        args: '-refresh=true'
+        
+    - name: 'Terraform Apply'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'apply'
+        tf_actions_working_dir: '.'
+        args: '-refresh=true'
+        
+    - name: Remove consul if is not stopped already
+      run: |
+        ps -eaf | grep consul
+        ps -eaf | grep "consul agent" | awk {'print $2'} | xargs kill >> /dev/null
