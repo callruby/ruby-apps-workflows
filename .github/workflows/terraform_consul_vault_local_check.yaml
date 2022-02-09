@@ -100,8 +100,6 @@ jobs:
     - name: Preparing folder and files
       run: |
         cp -fr ${{env.REPOSITORY_LOCAL}}/terraform/* .
-        sed -i main.tf -re '1,10d'
-        sed -i main.tf -re '1043,1055d'
         sed -i 's,module.application1.github_secrets.QA6_LDAP_PASSWORD,\"SOME_PASS\",g' *.tf
         sed -i 's,application1,application2,g' blueprint-consul-vault/main.tf
         sed -i 's,localhost,http://172.17.0.1,g' blueprint-consul-vault/main.tf
@@ -241,6 +239,6 @@ jobs:
         tf_actions_working_dir: '.'
         args: '-refresh=true'
         
-    - name: Remove consul if is not stopped already
+    - name: Verify if consul is stopped already
       run: |
         ps -eaf | grep consul
