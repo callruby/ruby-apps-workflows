@@ -244,4 +244,3 @@ jobs:
     - name: Remove consul if is not stopped already
       run: |
         ps -eaf | grep consul
-        ps -eaf | grep "consul agent" | awk {'print $2'} | xargs kill >> /dev/null
