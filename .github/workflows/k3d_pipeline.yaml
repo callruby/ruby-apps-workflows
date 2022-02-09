@@ -1,0 +1,233 @@
+on:
+  push:
+    branches: 
+      - new_pipeline
+ 
+name: 'K3d Deploy and terraform apply'
+
+env:
+  TF_VERSION: "0.15.3"
+  REPOSITORY: "blueprint-consul-vault"
+  REPOSITORY_CHART: "ruby-apps-charts"
+  REPOSITORY_LOCAL: "ruby-local-environment"
+  
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  k3d:
+    name: 'Rise K3D Cluster and run Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+    steps:
+       
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+        
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_LOCAL}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_LOCAL}}
+        path: ${{env.REPOSITORY_LOCAL}}
+        ref: 'main'        
+        
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+        
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_CHART}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_CHART}}
+        path: ${{env.REPOSITORY_CHART}}
+        ref: 'master'        
+        
+    - name: (GLOBAL) Define variables
+      id: Variables
+      run: |	  
+        echo "CONSUL_HTTP_TOKEN=${{secrets.CONSUL_HTTP_TOKEN}}" >> $GITHUB_ENV
+        echo "VAULT_TOKEN=${{secrets.VAULT_TOKEN}}" >> $GITHUB_ENV        
+                
+    - uses: azure/setup-helm@v1
+      id: install
+      with:
+        version: 3.6.3
+        
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'        
+
+    - name: Cluster deletion
+      run: |
+        k3d cluster delete k3d-consul-test-cluster
+        k3d cluster delete consul-test-cluster
+        sleep 30
+
+    - uses: AbsaOSS/k3d-action@v2
+      name: "Create K3d cluster"
+      with:
+        cluster-name: "consul-test-cluster"
+        k3d-version: v3.4.0 #v4.0.0
+        args: >-
+            -p "8500:8500@loadbalancer"
+            -p "8443:443@loadbalancer"
+            --k3s-server-arg "--no-deploy=traefik,servicelb,metrics-server@server:*"
+            
+            #--no-hostip
+            ##-p "8500:8500@loadbalancer"
+            #--no-lb
+            #--network nw01
+            #--agents 1 
+            #-p "80:80@agent:0:direct"
+            #-p "8443:443@agent:0:direct"
+            #-p "5053:53/udp@agent:0:direct"            
+            #--k3s-arg "--no-deploy=traefik,servicelb,metrics-server@server:*"  
+            #--image docker.io/rancher/k3s:v1.20.4-k3s1
+            
+    - name: Cluster & Node & info
+      run: |
+        docker ps -a
+        kubectl cluster-info --context k3d-consul-test-cluster
+        kubectl config use-context k3d-consul-test-cluster
+        kubectl get nodes -o wide
+        
+    - name: Preparing folder and files
+      run: |
+        ls -la 
+        cp -fr ${{env.REPOSITORY_LOCAL}}/terraform/* .
+        sed -i main.tf -re '1,10d'
+        sed -i 's,application1,application2,g' main.tf
+        sed -i 's,application1,application2,g' qa1.tf
+        sed -i 's,application1,application2,g' qa2.tf
+        sed -i 's,application1,application2,g' qa3.tf
+        sed -i 's,application1,application2,g' qa4.tf
+        sed -i 's,application1,application2,g' qa5.tf
+        sed -i 's,application1,application2,g' qa6.tf
+        sed -i 's,application1,application2,g' prod.tf
+        sed -i 's,application1,application2,g' blueprint-consul-vault/main.tf
+        sed -i 's,localhost,http://127.0.0.1,g' blueprint-consul-vault/main.tf
+        #sed -i 's,consul-server.consul.svc.cluster.local,127.0.0.1,g' blueprint-consul-vault/read/main.tf
+        cat blueprint-consul-vault/main.tf
+        #rm -f prod.tf qa1.tf qa2.tf qa3.tf qa4.tf qa5.tf qa6.tf
+        echo -e "\n" >> variables.tf
+        echo "variable \"templating_dev\" { default = {} }" >> variables.tf
+        grep -r "backend" .
+        grep -r "localhost" .
+        grep -r "consul-server" .
+    - name: Obtain Github Secrets list filter and verify them
+      shell: bash
+      run: |
+        github_secrets=$(echo ${SECRETS} | jq 'with_entries(select(.key|test("GPG_")|not))|with_entries(select(.key|test("VAULT_")|not))|with_entries(select(.key|test("_HTTP_TOKEN")|not))|with_entries(select(.key|test("_KUBECONFIG")|not))|del(.PFX_CERT)|del(.NUGET_CONFIG)|del(.github_token)|del (.AWS_DEFAULT_REGION)|del (.EKS_SERVICE)|del (.PAT)|del (.SLACK_WEBHOOK)')
+        echo "=======DEBUG GITHUB SECRET LIST=============================================================="
+        echo $github_secrets
+        echo "============================================================================================="
+        echo "TF_VAR_github_secrets=$(echo ${github_secrets})" >> $GITHUB_ENV
+        echo $github_secrets >> SECRETS 
+        echo "======DEBUG TERRAFORM VALUE LIST============================================================="
+        USED_VALUES=$(grep "module.application2.github_secrets" *.tf | awk {'print $2 $3 $4'} | awk 'NF' | sed 's/ //')
+        echo "============================================================================================="
+        IFS=$'\n'
+        for values in $USED_VALUES
+        do
+          #echo "=========DEBUG 4========================================================================"
+          #echo $values
+          #echo $values | cut -d'.' -f4-
+          #echo $values | cut -d'.' -f4- | sed 's/#.*//'
+          #echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g'
+          VALUE=$(echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g' | sed 's/ //' | sed s/'\s'//g)
+          echo "======================================================================================"
+          echo "Comparing $VALUE if is on the Github Secrets "
+          echo "cat SECRETS | grep \"$VALUE\""
+          echo "======================================================================================"
+          COMPARE=$(grep "$VALUE" SECRETS || true)
+         if [ -n "$COMPARE" ]; then
+           echo "======================================================================================"
+           echo "$VALUE EXIST ON GITHUB SECRET AND ON THE MAIN.TF FILE"
+           echo "======================================================================================"
+         else
+           echo "======================================================================================"
+           echo "$VALUE DONT EXIST ON GITHUB SECRET BUT IS ON THE MAIN.TF FILE"
+           echo "======================================================================================"
+           exit 1
+         fi          
+        done
+      env:
+        SECRETS: ${{ toJson(secrets) }}      
+      
+    - name: Install Consul
+      run: |
+        ls -la
+        helm template ruby-apps-charts/consul_base --name-template=consul  -n consul --kube-context k3d-consul-test-cluster --values k3d_local.yaml >> consul_template.yaml
+        kubectl create namespace consul --context k3d-consul-test-cluster
+        kubectl apply -f consul_template.yaml -n consul --context k3d-consul-test-cluster
+        sleep 30
+        kubectl get pods --all-namespaces --context k3d-consul-test-cluster
+        kubectl get svc -n consul --context k3d-consul-test-cluster
+        kubectl port-forward svc/consul-server --address 0.0.0.0 -n consul 8500:8500 --context k3d-consul-test-cluster &
+        ps -eaf
+        
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+    
+    - name: 'Terraform Init'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'init'
+        tf_actions_working_dir: '.'      
+
+    - name: .terraform permissions
+      run: |
+        ls -la
+        pwd
+        sudo chown -R runner:runner .terraform
+        
+    - name: 'Terraform Validate'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'validate'
+        tf_actions_working_dir: '.'          
+        
+    - name: 'Terraform Plan'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'plan'
+        tf_actions_working_dir: '.'        
+
+    - name: Consul Port-Forwarding
+      run: |
+        kubectl port-forward svc/consul-server --address 0.0.0.0 -n consul 8500:8500 --context k3d-consul-test-cluster &
+        ps -eaf
+        
+    - name: 'Terraform Apply'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'apply'
+        tf_actions_working_dir: '.'
+        
+    - name: Cluster deletion
+      run: |
+        sleep 30
+        k3d cluster delete consul-test-cluster
