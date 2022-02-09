@@ -1,0 +1,228 @@
+on:
+  workflow_call:
+    inputs:
+      tag: 
+        type: string
+    secrets:    
+      PAT:
+        required: true
+      GPG_PRIVATE_KEY:
+        required: true
+      GPG_PASSPHRASE:
+        required: true
+      EKS_SERVICE:
+        required: true
+      AWS_DEFAULT_REGION:
+        required: true
+      PFX_CERT:
+        required: true
+      SSL_PEM_CERT:
+        required: true
+      SSL_PEM_KEY:
+        required: true
+      NUGET_CONFIG:
+        required: true
+      SLACK_BOT_TOKEN:
+        required: false
+      SLACK_BOT_CHANNEL:
+        required: false
+      
+name: Create Tag & Release After Dev Deploy
+
+env:
+  REPOSITORY_WORKFLOW: "ruby-apps-workflows"
+  AWS_DEFAULT_REGION: "us-west-1"
+jobs:
+  liquibase:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.4
+        ports:
+          - 3306/tcp
+        env:
+          MYSQL_DATABASE: test
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=10s --health-retries=10   
+    
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Wait for MariaDB and Install Liquibase
+      run: |
+        sudo apt update
+        LIQUIBASE_VERSION=3.5.3
+        LIQUIBASE_PREFIX=/usr/local/lib
+        LIQUIBASE_BIN=/usr/local/bin
+        JDBC_MYSQL_VERSION=1.5.7
+        sudo apt install -y default-jre
+        sudo rm -rf ${LIQUIBASE_PREFIX}/liquibase
+        sudo rm -f ${LIQUIBASE_BIN}/liquibase
+        sudo mkdir -p ${LIQUIBASE_PREFIX}/liquibase
+        sudo curl -o /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -sSL https://github.com/liquibase/liquibase/releases/download/liquibase-parent-${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}-bin.tar.gz
+        sudo tar -zxf /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -C ${LIQUIBASE_PREFIX}/liquibase
+        #sed -i "s|bash$|ash|" ${LIQUIBASE_PREFIX}/liquibase/liquibase
+        sudo chmod +x ${LIQUIBASE_PREFIX}/liquibase/liquibase
+        sudo ln -s ${LIQUIBASE_PREFIX}/liquibase/liquibase ${LIQUIBASE_BIN}
+        sudo curl -o ${LIQUIBASE_PREFIX}/liquibase/lib/mariadb-${JDBC_MYSQL_VERSION}.jar -sSL https://downloads.mariadb.com/Connectors/java/connector-java-${JDBC_MYSQL_VERSION}/mariadb-java-client-${JDBC_MYSQL_VERSION}.jar        
+        sudo curl -fSL https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.38.tar.gz -o /tmp/mysql.tgz
+        sudo mkdir -p /tmp/mysql
+        sudo tar -xvf /tmp/mysql.tgz -C /tmp/mysql --strip-components=1
+        sudo cp /tmp/mysql/*.jar /usr/local/lib/liquibase/lib
+    - name: Execute Liquibase
+      run: |
+        sudo /usr/local/bin/liquibase --url=jdbc:mariadb://127.0.0.1:${{ job.services.mariadb.ports[3306] }}/test?autoReconnect=true"&"useSSL=false --changeLogFile=changelog/changelog.xml --username=root --password=root --logLevel=INFO update
+
+  build:
+    environment: default
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                      
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_WORKFLOW}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_WORKFLOW}}
+        path: ${{env.REPOSITORY_WORKFLOW}}
+        ref: 'master'
+        fetch-depth: 1
+        
+    #- name: Import GPG key
+      #uses: crazy-max/ghaction-import-gpg@v4
+      #with:
+        #gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+        #passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        #git_user_signingkey: true
+        #git_commit_gpgsign: true
+                  
+    - name: (GLOBAL) Configure Service name.
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+        TOK=$(echo U2FsdGVkX1+quT9qjFncsdkCMVjo8ghWacdeqPOooL1p1i930rQL88mso6ek8TQV047H4m1rPLrkHs4iOcrVIRvcvuvEwArP2ZzP8/5IyKUXlQ9csJtWDx82PFbbgB+B | openssl enc -aes256 -base64 -d -k ${{secrets.GPG_PASSPHRASE}}| grep xox)
+        echo "SLTOK=$(echo $TOK)" >> $GITHUB_ENV        
+   
+   #Comment if it has to be run on a public Agent 
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+    
+    #Uncomment if it has to be run on a public Agent
+    #- name: (GLOBAL) Configure AWS credentials
+      #uses: aws-actions/configure-aws-credentials@v1
+      #with:
+        #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        
+    - name: Get short SHA
+      id: slug
+      run: |
+        #echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
+        echo "IMAGE_TAG=$(echo "GHRC_$(date +%Y%m%dT%H.%M.%S)")" >> $GITHUB_ENV
+        #echo ${GITHUB_SHA} | cut -c1-7
+        echo "IMAGE_TAG=$(echo "GHRC_$(date +%Y%m%dT%H.%M.%S)")"
+
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Build, Test, Tag, Push.
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        echo '${{ secrets.PFX_CERT }}' | base64 --decode >> ssl_cert.pfx
+        echo '${{ secrets.SSL_PEM_CERT }}' | base64 --decode >> ssl_cert.pem
+        echo '${{ secrets.SSL_PEM_KEY }}' | base64 --decode >> ssl_key.pem        
+        echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
+        ls -la ruby-apps-workflows/Dockerfile*
+        cp -f ruby-apps-workflows/Dockerfile-${EKS_SERVICE} Dockerfile
+        echo "Building Docker Image"
+        echo "===================================="
+        docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG --build-arg EKS_SERVICE=${EKS_SERVICE} .
+        echo "===================================="
+        echo "Pushing Docker Image"
+        echo "===================================="
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG
+        #echo "::set-env name=IMAGE::${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG"
+        
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'
+
+    - uses: imranismail/setup-kustomize@v1
+    
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/dev/$EKS_SERVICE
+        ls -la
+        #kustomize edit set image $EKS_sERVICE=${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${IMAGE_TAG}
+        sed -i -e "s|image:.*|image: ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${IMAGE_TAG}|g" values.yaml
+        #cat kustomization.yml
+        cat values.yaml
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git pull
+        #git add kustomization.yml
+        git add values.yaml
+        git commit -m "Update ${EKS_SERVICE} image to ${IMAGE_TAG} on deploy file"
+        set +e
+        git push origin master > error 
+        cat error
+        if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+          echo "========================================================"
+          echo "Retrying...."
+          echo "========================================================"
+          set -e
+          sleep 5
+          git pull
+          git commit -m "Update ${EKS_SERVICE} image to ${IMAGE_TAG} on deploy file"
+          git push origin master
+        fi 
+        
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: C024R1PM6N6 #${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "New Image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.event.repository.name }} was pushed from release branch, result: ${{ job.status }}\n"
+      env:
+        SLACK_BOT_TOKEN: ${{ env.SLTOK }} #${{ secrets.SLACK_BOT_TOKEN }}
+        #see https://github.com/callruby/blueprint-aws-terraform-operator-samples/blob/main/.github/workflows/slack_test.yaml
+    - name: Checkout code
+      uses: actions/checkout@v2
