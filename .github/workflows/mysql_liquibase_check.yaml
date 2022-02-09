@@ -1,0 +1,65 @@
+name: Mysql Check liquibase changelog files
+
+on: [workflow_dispatch]
+   
+jobs:
+  build:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Killing older MySQL container
+      id: slug
+      run: |
+        ps -eaf
+        docker stop $(docker ps -a -q) || true
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - uses: mirromutth/mysql-action@v1.1
+      with:
+        host port: 3307 # Optional, default value is 3306. The port of host
+        container port: 3307 # Optional, default value is 3306. The port of container
+        character set server: 'utf8' # Optional, default value is 'utf8mb4'. The '--character-set-server' option for mysqld
+        collation server: 'utf8_general_ci' # Optional, default value is 'utf8mb4_general_ci'. The '--collation-server' option for mysqld
+        mysql version: '5.7' #'8.0' # Optional, default value is "latest". The version of the MySQL
+        mysql database: 'test' # Optional, default value is "test". The specified database which will be create
+        mysql root password: root # Required if "mysql user" is empty, default is empty. The root superuser password
+        mysql user: 'root' # Required if "mysql root password" is empty, default is empty. The superuser for the specified database. Can use secrets, too
+        mysql password: root # Required if "mysql user" exists. The password for the "mysql user"
+
+    - name: Wait for MySQL and Install Liquibase
+      run: |
+        sleep 15
+        LIQUIBASE_VERSION=3.5.3
+        LIQUIBASE_PREFIX=/usr/local/lib
+        LIQUIBASE_BIN=/usr/local/bin
+        JDBC_MYSQL_VERSION=1.5.7
+        sudo apt update
+        sudo apt install -y default-jre
+        sudo rm -rf ${LIQUIBASE_PREFIX}/liquibase
+        sudo rm -f ${LIQUIBASE_BIN}/liquibase
+        sudo mkdir -p ${LIQUIBASE_PREFIX}/liquibase
+        sudo curl -o /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -sSL https://github.com/liquibase/liquibase/releases/download/liquibase-parent-${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}-bin.tar.gz
+        sudo tar -zxf /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -C ${LIQUIBASE_PREFIX}/liquibase
+        #sed -i "s|bash$|ash|" ${LIQUIBASE_PREFIX}/liquibase/liquibase
+        sudo chmod +x ${LIQUIBASE_PREFIX}/liquibase/liquibase
+        sudo ln -s ${LIQUIBASE_PREFIX}/liquibase/liquibase ${LIQUIBASE_BIN}
+        sudo curl -o ${LIQUIBASE_PREFIX}/liquibase/lib/mariadb-${JDBC_MYSQL_VERSION}.jar -sSL https://downloads.mariadb.com/Connectors/java/connector-java-${JDBC_MYSQL_VERSION}/mariadb-java-client-${JDBC_MYSQL_VERSION}.jar        
+        sudo curl -fSL https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.38.tar.gz -o /tmp/mysql.tgz
+        sudo mkdir -p /tmp/mysql
+        sudo tar -xvf /tmp/mysql.tgz -C /tmp/mysql --strip-components=1
+        sudo cp /tmp/mysql/*.jar /usr/local/lib/liquibase/lib
+
+    - name: Execute Liquibase
+      run: |
+        sudo /usr/local/bin/liquibase --url=jdbc:mysql://127.0.0.1:3307/test?autoReconnect=true"&"useSSL=false --changeLogFile=changelog/changelog.xml --username=root --password=root --logLevel=INFO update
+
+    - name: Checkout code
+      uses: actions/checkout@v2
