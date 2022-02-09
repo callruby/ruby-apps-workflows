@@ -1,0 +1,60 @@
+name: MsSql Check liquibase changelog files
+
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2019-CU15-ubuntu-20.04 #mcr.microsoft.com/mssql/server:2019-latest
+        ports:
+          - 1433/tcp
+        env:
+          MSSQL_PID: Standard
+          ACCEPT_EULA: Y
+          SA_PASSWORD: yourStrongP@ssword
+          DB_NAME: test
+        options: >-
+            --health-cmd "/opt/mssql-tools/bin/sqlcmd -U SA -P $SA_PASSWORD -Q 'select 1' -b -o /dev/null"
+            --health-interval 60s
+            --health-timeout 30s
+            --health-start-period 20s
+            --health-retries 3            
+    
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Wait for MsSql and Install Liquibase
+      run: |
+        sudo apt update
+        LIQUIBASE_VERSION=3.5.3
+        LIQUIBASE_PREFIX=/usr/local/lib
+        LIQUIBASE_BIN=/usr/local/bin
+        JDBC_MSSQL_VERSION=8.2.0
+        sudo apt install -y default-jre
+        sudo rm -rf ${LIQUIBASE_PREFIX}/liquibase
+        sudo rm -f ${LIQUIBASE_BIN}/liquibase
+        sudo mkdir -p ${LIQUIBASE_PREFIX}/liquibase
+        sudo curl -o /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -sSL https://github.com/liquibase/liquibase/releases/download/liquibase-parent-${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}-bin.tar.gz
+        sudo tar -zxf /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -C ${LIQUIBASE_PREFIX}/liquibase
+        #sed -i "s|bash$|ash|" ${LIQUIBASE_PREFIX}/liquibase/liquibase
+        sudo chmod +x ${LIQUIBASE_PREFIX}/liquibase/liquibase
+        sudo ln -s ${LIQUIBASE_PREFIX}/liquibase/liquibase ${LIQUIBASE_BIN}
+        sudo curl -o ${LIQUIBASE_PREFIX}/liquibase/lib/mariadb-${JDBC_MYSQL_VERSION}.jar -sSL https://github.com/microsoft/mssql-jdbc/releases/download/v${JDBC_MSSQL_VERSION}/mssql-jdbc-${JDBC_MSSQL_VERSION}.jre11.jar        
+
+    - name: Execute Liquibase
+      run: |
+        ls -la changelog
+        sudo /usr/local/bin/liquibase --changeLogFile=changelog/changelog.xml --url="jdbc:sqlserver://127.0.0.1:${{ job.services.sqlserver.ports[1433] }};database=tempdb" --username=SA --password=yourStrongP@ssword --logLevel=INFO update
+ 
+    - name: Checkout code
+      uses: actions/checkout@v2
