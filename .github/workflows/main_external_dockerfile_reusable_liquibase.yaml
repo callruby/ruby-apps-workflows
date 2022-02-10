@@ -219,6 +219,7 @@ jobs:
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
+      if: always()
       with:
         channel-id: C032F2NNUP4 #${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "New Image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.event.repository.name }} was pushed from release branch, result: ${{ job.status }}\n"
