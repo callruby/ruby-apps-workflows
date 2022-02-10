@@ -1,0 +1,95 @@
+name: K3d  Pull request checks
+on:
+  pull_request:
+    #types: [ opened, reopened ]
+
+env:
+  REPOSITORY_CHART: "ruby-apps-charts"
+  
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    #runs-on: ubuntu:latest
+    steps:
+      - name: Turnstyle
+        uses: softprops/turnstyle@v1
+        with:
+           continue-after-seconds: 500 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}    
+    
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - name: (GLOBAL) Check out ${{env.REPOSITORY_CHART}} repository
+        uses: actions/checkout@master
+        with:
+          token: ${{ secrets.PAT }}
+          repository: callruby/${{env.REPOSITORY_CHART}}
+          path: ${{env.REPOSITORY_CHART}}
+          ref: 'master'
+
+      - uses: azure/setup-helm@v1
+        id: install
+        with:
+          version: 3.6.3
+        
+      - uses: azure/setup-kubectl@v1
+        with:
+          version: 'v1.15.0'
+        
+      - name: Fetch and Diff PR with base from which it was cloned, to see which values file was changed .
+        if: ${{ github.event.pull_request.base.sha }}  
+        run: |
+          git fetch origin master ${{ github.event.pull_request.base.sha }}
+          DIFF_FILES=$(git diff ${{ github.event.pull_request.base.sha }} ${{ github.sha }} --name-only | grep values)
+          IFS=$'\n'
+          mkdir -p yamls
+          for DIFFFILE in $DIFF_FILES
+          do
+            APPNAME=$(dirname $DIFFFILE | sed 's,.*./,,g')
+            DIRN=$(dirname $DIFFFILE | sed 's,helm/,,g')
+            ENVNAME=$(echo $DIRN | sed "s,$APPNAME,,g" | sed 's,/,,g')
+            echo "======================================="
+            echo "Executing Helm template                "
+            echo "APPNAME: $APPNAME"
+            echo "DIRN: $DIRN"
+            echo "ENVNAME: $ENVNAME"
+            helm template ruby-apps-charts/apps_base --name-template=$APPNAME$ENVNAME -n dev-apps --values $DIFFFILE --output-dir . #>> $DIFFFILE_template.yaml
+            mv ruby-app/templates/service.yml yamls/service-$APPNAME$ENVNAME.yaml
+            mv ruby-app/templates/deployment.yml yamls/deployment-$APPNAME$ENVNAME.yaml
+            echo $DIFFFILE
+            echo "======================================="
+          done
+          ls -la yamls/
+
+      - uses: AbsaOSS/k3d-action@v2
+        name: "Create K3d cluster"
+        with:
+          cluster-name: "consul-test-cluster"
+          k3d-version: v3.4.0 #v4.0.0
+          args: >-
+              -p "8443:443@loadbalancer"
+              --k3s-server-arg "--no-deploy=traefik,servicelb,metrics-server@server:*"
+
+      - name: Cluster & Node & info
+        run: |
+          docker ps -a
+          kubectl cluster-info --context k3d-consul-test-cluster
+          kubectl config use-context k3d-consul-test-cluster
+          kubectl get nodes -o wide
+          
+      - name: Test Kubectl execution on the modified fiiles 
+        run: |
+          kubectl config use-context k3d-consul-test-cluster
+          cd yamls
+          kubectl apply --recursive --dry-run -f .
+          kubectl apply --recursive -f .
+
+      - name: Cluster deletion
+        if: always()
+        run: |
+          sleep 10
+          k3d cluster delete k3d-consul-test-cluster
+          k3d cluster delete consul-test-cluster
+          sleep 30
