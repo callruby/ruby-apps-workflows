@@ -141,4 +141,5 @@ jobs:
             }          
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
           
