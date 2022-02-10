@@ -61,7 +61,9 @@ jobs:
             echo $DIFFFILE
             echo "======================================="
           done
+          ls -la 
           ls -la yamls/
+          #--kube-context k3d-consul-test-cluster
 
       - uses: AbsaOSS/k3d-action@v2
         name: "Create K3d cluster"
@@ -79,10 +81,11 @@ jobs:
           kubectl config use-context k3d-consul-test-cluster
           kubectl get nodes -o wide
           
-      - name: Test Kubectl execution on the modified fiiles 
+      - name: Test Kubectl execution on the modified files
         run: |
           kubectl config use-context k3d-consul-test-cluster
           cd yamls
+          kubectl create namespace cicd
           kubectl apply --recursive --dry-run -f .
           kubectl apply --recursive -f .
 
@@ -93,3 +96,14 @@ jobs:
           k3d cluster delete k3d-consul-test-cluster
           k3d cluster delete consul-test-cluster
           sleep 30
+
+      - name: Post to a Slack channel
+        id: slack
+        uses: slackapi/slack-github-action@v1.17.0
+        if: always()
+        with:
+          channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+          slack-message: "Pull Request pipeline on ruby-apps-deploy repository was ended, result: ${{ job.status }}\n"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          
