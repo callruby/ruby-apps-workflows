@@ -17,7 +17,7 @@ jobs:
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
       with:
-        channel-id: C024R1PM6N6
+        channel-id: C032F2NNUP4
         slack-message: "test"
       env:
         SLACK_BOT_TOKEN: '${EKS_SERVICE}'

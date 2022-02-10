@@ -170,7 +170,7 @@ jobs:
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
       with:
-        channel-id: C024R1PM6N6 #${{ secrets.SLACK_BOT_CHANNEL }}
+        channel-id: C032F2NNUP4 #${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "New Image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.event.repository.name }} was pushed from release branch, result: ${{ job.status }}\n"
       env:
         SLACK_BOT_TOKEN: ${{ env.SLTOK }} #${{ secrets.SLACK_BOT_TOKEN }}
