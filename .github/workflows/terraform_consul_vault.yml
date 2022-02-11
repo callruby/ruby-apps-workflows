@@ -7,7 +7,8 @@ on:
 name: 'TerraformDeploy'
 
 env:
-  TF_VERSION: "0.14.0"
+  TF_VERSION: "0.15.3"
+  REPOSITORY: "blueprint-consul-vault"  
   
 jobs:
   cleanup:
@@ -48,6 +49,63 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+
+
+    - name: Obtain Github Secrets list filter and verify them
+      shell: bash
+      #if: contains(github.event.inputs.Environment, 'Qa')
+      run: |
+        github_secrets=$(echo ${SECRETS} | jq 'with_entries(select(.key|test("GPG_")|not))|with_entries(select(.key|test("VAULT_")|not))|with_entries(select(.key|test("_HTTP_TOKEN")|not))|with_entries(select(.key|test("_KUBECONFIG")|not))|del(.PFX_CERT)|del(.NUGET_CONFIG)|del(.github_token)|del (.AWS_DEFAULT_REGION)|del (.EKS_SERVICE)|del (.PAT)|del (.SLACK_WEBHOOK)')
+        echo "=======DEBUG GITHUB SECRET LIST=============================================================="
+        echo $github_secrets
+        echo "============================================================================================="
+        echo "TF_VAR_github_secrets=$(echo ${github_secrets})" >> $GITHUB_ENV
+        echo $github_secrets >> SECRETS 
+        echo "======DEBUG TERRAFORM VALUE LIST============================================================="
+        #USED_VALUES=$(grep "module.application1.github_secrets" *.tf | awk 'NF' | sed 's/ //')
+        USED_VALUES=$(grep "module.application1.github_secrets" *.tf | awk {'print $2 $3 $4'} | awk 'NF' | sed 's/ //')
+        echo "============================================================================================="
+        IFS=$'\n'
+        for values in $USED_VALUES
+        do
+          #echo "=========DEBUG 4========================================================================"
+          #echo $values
+          #echo $values | cut -d'.' -f4-
+          #echo $values | cut -d'.' -f4- | sed 's/#.*//'
+          #echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g'
+          VALUE=$(echo $values | cut -d'.' -f4- | sed 's/#.*//' | sed 's,"),,g' | sed 's/ //' | sed s/'\s'//g)
+          echo "======================================================================================"
+          echo "Comparing $VALUE if is on the Github Secrets "
+          echo "cat SECRETS | grep \"$VALUE\""
+          echo "======================================================================================"
+          COMPARE=$(grep "$VALUE" SECRETS || true)
+         if [ -n "$COMPARE" ]; then
+           echo "======================================================================================"
+           echo "$VALUE EXIST ON GITHUB SECRET AND ON THE MAIN.TF FILE"
+           echo "======================================================================================"
+         else
+           echo "======================================================================================"
+           echo "$VALUE DONT EXIST ON GITHUB SECRET BUT IS ON THE MAIN.TF FILE"
+           echo "======================================================================================"
+           exit 1
+         fi          
+        done
+      env:
+        SECRETS: ${{ toJson(secrets) }}        
+        
+    - uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: us-west-1
+        role-to-assume: arn:aws:iam::425300134585:role/Devops-Role
+        web-identity-token-file: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+        
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
       with:
@@ -66,13 +124,22 @@ jobs:
         pwd
         sudo chown -R runner:runner .terraform
         
+    - name: 'Terraform Taint'
+      uses: hashicorp/terraform-github-actions@master
+      with:
+        tf_actions_version: ${{ env.TF_VERSION }}
+        tf_actions_subcommand: 'taint'
+        tf_actions_working_dir: '.'
+        tf_actions_comment: true
+        args: 'module.application1.aws_iam_access_key.main'
+
     - name: 'Terraform Plan'
       uses: hashicorp/terraform-github-actions@master
       with:
         tf_actions_version: ${{ env.TF_VERSION }}
         tf_actions_subcommand: 'plan'
         tf_actions_working_dir: '.'
-
+        
     - name: 'Terraform Apply'
       uses: hashicorp/terraform-github-actions@master
       with:
