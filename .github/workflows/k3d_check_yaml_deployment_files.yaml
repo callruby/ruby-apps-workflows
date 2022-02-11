@@ -48,6 +48,7 @@ jobs:
           for DIFFFILE in $DIFF_FILES
           do
             APPNAME=$(dirname $DIFFFILE | sed 's,.*./,,g')
+            rm -rf helm/dev-pr_base
             DIRN=$(dirname $DIFFFILE | sed 's,helm/,,g')
             ENVNAME=$(echo $DIRN | sed "s,$APPNAME,,g" | sed 's,/,,g')
             echo "======================================="
@@ -55,11 +56,15 @@ jobs:
             echo "APPNAME: $APPNAME"
             echo "DIRN: $DIRN"
             echo "ENVNAME: $ENVNAME"
-            helm template ruby-apps-charts/apps_base --name-template=$APPNAME$ENVNAME -n dev-apps --values $DIFFFILE --output-dir . #>> $DIFFFILE_template.yaml
-            mv ruby-app/templates/service.yml yamls/service-$APPNAME$ENVNAME.yaml
-            mv ruby-app/templates/deployment.yml yamls/deployment-$APPNAME$ENVNAME.yaml
-            echo $DIFFFILE
-            echo "======================================="
+            if [[ $(echo $DIFFFILE | grep dev-pr_base ) ]]; then
+              echo "Ignoring Dev-pr_base file"
+            else
+              helm template ruby-apps-charts/apps_base --name-template=$APPNAME$ENVNAME -n dev-apps --values $DIFFFILE --output-dir . #>> $DIFFFILE_template.yaml
+              mv ruby-app/templates/service.yml yamls/service-$APPNAME$ENVNAME.yaml
+              mv ruby-app/templates/deployment.yml yamls/deployment-$APPNAME$ENVNAME.yaml
+              echo $DIFFFILE
+              echo "======================================="
+            fi
           done
           ls -la 
           ls -la yamls/
@@ -121,7 +126,11 @@ jobs:
                     {
                       "type": "mrkdwn",
                       "text": "Author: <https://github.com/${{ github.event.sender.login }}|@${{ github.event.sender.login }}>"
-                    }
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "Commit Sha: >${{ github.sha }}>"
+                    }                    
                   ]
                 },
               {
