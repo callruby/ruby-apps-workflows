@@ -212,9 +212,9 @@ jobs:
               }                
               ]
             }          
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        #see https://github.com/callruby/blueprint-aws-terraform-operator-samples/blob/main/.github/workflows/slack_test.yaml
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
     - name: Checkout code
       uses: actions/checkout@v2
