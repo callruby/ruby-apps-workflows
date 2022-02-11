@@ -93,10 +93,50 @@ jobs:
       uses: slackapi/slack-github-action@v1.17.0
       if: always()
       with:
-        channel-id: C032F2NNUP4  #${{ secrets.SLACK_BOT_CHANNEL }}
-        slack-message: "The release image ${{env.IMAGE_TAG}} for ${{ github.event.repository.name }} was updated , result: ${{ job.status }}\n"
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        #slack-message: "Pull Request pipeline on ruby-apps-deploy repository was ended, result: ${{ job.status }}\n"
+        payload: |
+            {
+              "text": ":github: Release image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.repository }} from RELEASE branch was manually built - Status: ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":github: Release image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.repository }} from RELEASE branch was manually built - Status: ${{ job.status }}\n\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Author: <https://github.com/${{ github.event.sender.login }}|@${{ github.event.sender.login }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "Commit Sha: >${{ github.sha }}>"
+                    }                    
+                  ]
+                },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Pipeline Execution: Press Here"
+                    },
+                    "url": "${{env.button_url}}"
+                  }
+                ]
+              }                
+              ]
+            }          
       env:
-        SLACK_BOT_TOKEN: ${{ env.SLTOK }} #${{ secrets.SLACK_BOT_TOKEN }}
-        #see https://github.com/callruby/blueprint-aws-terraform-operator-samples/blob/main/.github/workflows/slack_test.yaml
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        
     - name: Checkout code
       uses: actions/checkout@v2
