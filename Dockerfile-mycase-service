@@ -15,7 +15,7 @@ RUN dotnet restore ./Ruby.Microservices.Partner.MyCase.sln && \
     cp -fr $HOME/.nuget /app/${APP}/out/
 #----------------------------------------------------------------
 
-FROM microsoft/dotnet:2.1-runtime
+FROM mcr.microsoft.com/dotnet/core/runtime:2.1
 ENV APP Ruby.Microservices.Partner.MyCase
 ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
 RUN chmod +x /usr/local/bin/confd
