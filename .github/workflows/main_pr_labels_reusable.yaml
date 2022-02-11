@@ -174,16 +174,56 @@ jobs:
             echo "::error ::Please set a valid env name as a label"
             exit 1
           fi
-
+          
       - name: Post to a Slack channel
         id: slack
         uses: slackapi/slack-github-action@v1.17.0
         if: always()
         with:
-          channel-id: C032F2NNUP4 #${{ secrets.SLACK_BOT_CHANNEL }}
-          slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into ${{env.ENV}} (Pr deployment), result: ${{ job.status }}\n"
+          channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+          #slack-message: "Pull Request pipeline on ruby-apps-deploy repository was ended, result: ${{ job.status }}\n"
+          payload: |
+            {
+              "text": ":github: Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to deploy into ${{env.ENV}} - Status: ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":github: Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to deploy into ${{env.ENV}} - Status: ${{ job.status }}\n\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Author: <https://github.com/${{ github.event.sender.login }}|@${{ github.event.sender.login }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "Commit Sha: >${{ github.sha }}>"
+                    }                    
+                  ]
+                },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Pipeline Execution: Press Here"
+                    },
+                    "url": "${{env.button_url}}"
+                  }
+                ]
+              }                
+              ]
+            }          
         env:
-          SLACK_BOT_TOKEN: ${{ env.SLTOK }} #${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}          
 
       - name: Checkout code
         uses: actions/checkout@v2
