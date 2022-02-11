@@ -153,7 +153,7 @@ jobs:
               git add helm/$VAL/${EKS_SERVICE}/values.yaml
             fi
           done  
-          echo "ENVIRONMENT=${VALUES}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=$(echo ${VALUES})" >> $GITHUB_ENV
           git commit -m "Update ${EKS_SERVICE} image to ${COMMIT} on deploy folder/s $VALUES"
           set +e
           git status
