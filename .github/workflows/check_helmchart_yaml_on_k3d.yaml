@@ -1,0 +1,77 @@
+name: K3d Pull request checks
+on:
+  push:
+  #pull_request:
+    #types: [ opened, reopened ]
+  
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    #runs-on: ubuntu:latest
+    steps:
+      - name: Turnstyle
+        uses: softprops/turnstyle@v1
+        with:
+           continue-after-seconds: 500 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}    
+    
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - uses: azure/setup-helm@v1
+        id: install
+        with:
+          version: 3.6.3
+        
+      - uses: azure/setup-kubectl@v1
+        with:
+          version: 'v1.15.0'
+        
+      - name: Check all the helm charts and his values.yaml file
+        #if: ${{ github.event.pull_request.base.sha }}  
+        run: |
+          mkdir -p yamls
+          rm -rf vault_base consul_base terraform_base
+          shopt -s dotglob
+          find *_base -prune -not -path '*/\.*' -type d | while IFS= read -r d; do 
+            if [[ -f "$d/values.yaml" ]]; then
+              echo $d
+              name=$(echo $d | sed 's,_base,,g')
+              helm template $d --name-template=$name -n dev-apps --values $d/values.yaml  --output-dir yamls/$d
+            fi
+          done          
+          ls -la yamls/
+          
+      - uses: AbsaOSS/k3d-action@v2
+        name: "Create K3d cluster"
+        with:
+          cluster-name: "consul-test-cluster-chart"
+          k3d-version: v3.4.0 #v4.0.0
+          args: >-
+              -p "8443:443@loadbalancer"
+              --k3s-server-arg "--no-deploy=traefik,servicelb,metrics-server@server:*"
+
+      - name: Cluster & Node & info
+        run: |
+          docker ps -a
+          kubectl cluster-info --context k3d-consul-test-cluster-chart
+          kubectl config use-context k3d-consul-test-cluster-chart
+          kubectl get nodes -o wide
+          
+      - name: Test Kubectl execution on the modified files
+        run: |
+          kubectl config use-context k3d-consul-test-cluster-chart
+          cd yamls
+          kubectl create namespace cicd
+          kubectl create namespace qa1-apps
+          kubectl apply --recursive --dry-run -f .
+          kubectl apply --recursive -f .
+
+      - name: Cluster deletion
+        if: always()
+        run: |
+          sleep 10
+          k3d cluster delete k3d-consul-test-cluster-chart
+          k3d cluster delete consul-test-cluster-chart
+          sleep 30
