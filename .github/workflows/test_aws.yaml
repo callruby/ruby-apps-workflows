@@ -2,7 +2,7 @@ on:
   push:
     branches: 
       - master
- name: 'TestAWS'
+name: 'TestAWS'
 
 env:
   TF_VERSION: "0.15.3"
