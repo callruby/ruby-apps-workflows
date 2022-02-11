@@ -175,7 +175,7 @@ jobs:
         #slack-message: "Pull Request pipeline on ruby-apps-deploy repository was ended, result: ${{ job.status }}\n"
         payload: |
             {
-              "text": ":github: New Image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.repository }} from RELEASE branch - Status: ${{ job.status }}\n\n",
+              "text": ":github: New Image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.repository }} from RELEASE branch - Status: ${{ job.status }}",
               "blocks": [
                 {
                   "type": "section",
