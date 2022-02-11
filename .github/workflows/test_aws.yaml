@@ -1,0 +1,39 @@
+on:
+  push:
+    branches: 
+      - master
+ name: 'TestAWS'
+
+env:
+  TF_VERSION: "0.15.3"
+  REPOSITORY: "blueprint-consul-vault"  
+  
+jobs:        
+  terraform:
+    name: 'Terraform'
+    runs-on: self-hosted
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2       
+
+    - name: check aws1
+      run: |
+        ls -la
+        env | grep AWS
+        ls -la /var/run/secrets
+        cat /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+        
+    - name: (GLOBAL) Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1.6.0
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}        
+        
+
+    - name: check aws2
+      run: |
+        ls -la
+        env | grep AWS
+        ls -la /var/run/secrets
+        cat /var/run/secrets/eks.amazonaws.com/serviceaccount/token        
