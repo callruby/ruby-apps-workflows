@@ -153,7 +153,7 @@ jobs:
               git add helm/$VAL/${EKS_SERVICE}/values.yaml
             fi
           done  
-
+          echo "ENVIRONMENT=${VALUES}" >> $GITHUB_ENV
           git commit -m "Update ${EKS_SERVICE} image to ${COMMIT} on deploy folder/s $VALUES"
           set +e
           git status
@@ -184,13 +184,13 @@ jobs:
           #slack-message: "Pull Request pipeline on ruby-apps-deploy repository was ended, result: ${{ job.status }}\n"
           payload: |
             {
-              "text": ":github: Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to deploy into ${{env.ENV}} - Status: ${{ job.status }}",
+              "text": ":github: Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to deploy into ${{env.ENVIRONMENT}} - Status: ${{ job.status }}",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": ":github: Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to deploy into ${{env.ENV}} - Status: ${{ job.status }}\n\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                    "text": ":github: Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to deploy into ${{env.ENVIRONMENT}} - Status: ${{ job.status }}\n\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
                   }
                 },
                 {
