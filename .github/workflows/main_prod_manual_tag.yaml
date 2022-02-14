@@ -53,8 +53,8 @@ jobs:
         echo "===================================="
         echo "Tag Docker Image"
         echo "===================================="
-        docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:latest
-        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:latest
+        docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:production
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:production
 
     - name: Get current date
       id: date
