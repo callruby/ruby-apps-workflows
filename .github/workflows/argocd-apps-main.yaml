@@ -1,0 +1,50 @@
+name: Execute Kubectl apply
+on:
+  push:
+    branches: 
+      - main
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'
+      
+    - name: Execute Kubectl apply on shared cluster
+      run: |
+        #cp -fr qa[1-6] ../
+        rm -rf .github/workflows
+        #mv -f ../qa[1-6] .
+        find qa[1-6] -type f -name "*.yaml" | while IFS= read -r yamlfile; do 
+        if [[ $(cat $yamlfile | grep "https://github.com/callruby/ruby-apps-deploy.git") ]] && [[ $( cat $yamlfile | grep "eks_ruby-eks-dev-7M2GCKM6") ]]; then
+          directory=$(dirname $yamlfile)
+          if [[ $(cat $yamlfile | grep $directory) ]]; then
+            kubectl create -f $yamlfile -o yaml --dry-run=true | kubectl apply -f -
+          else
+            echo "========================================================================"
+            echo "Invalid YAML"
+            echo "The directoy name is not used on the yaml file $yamlfile"
+            echo "========================================================================"
+          fi
+        else
+          echo "========================================================================"
+          echo "Invalid YAML"
+          echo "Development Cluster has to be used as destination"
+          echo "ruby-apps-deploy repository has to be set"
+          echo "========================================================================"
+        fi
+        done        
+    
+    - name: Checkout code
+      uses: actions/checkout@v2
