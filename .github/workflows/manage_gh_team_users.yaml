@@ -1,0 +1,88 @@
+
+# https://github.com/hashicorp/terraform-github-actions/blob/master/examples/arguments.md
+name: 'TerraformDeploy Gh Users on teams'
+on:
+  workflow_dispatch:
+    inputs:
+      Password:
+        description: 'Trigger Gh Team users'
+        required: true
+        default: '' 
+ 
+env:
+  TF_VERSION: "0.13.5"
+  REPOSITORY: "ruby-project-deploy"  
+  
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    #container:
+      #image: ubuntu:latest
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  terraform:
+    name: 'Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+  
+    steps:
+
+    - name: (GLOBAL) Define variables
+      id: Variables
+      run: |	  
+        echo "GITHUB_OWNER=callruby" >> $GITHUB_ENV
+        echo "GITHUB_TOKEN=${{ secrets.PAT }}" >> $GITHUB_ENV
+        
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+                
+    - uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: us-west-1
+        role-to-assume: arn:aws:iam::425300134585:role/Devops-Role
+        web-identity-token-file: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+        
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        terraform_version: ${{ env.TF_VERSION }}    
+
+    - name: Terraform Init & Validate
+      run: |
+        cd ${{env.REPOSITORY}}/github-user-teams
+        terraform init
+        sudo chown -R runner:runner .terraform
+        terraform validate -no-color
+        
+    - name: Terraform Plan
+      id: plan
+      run: |
+        cd ${{env.REPOSITORY}}/read_onpremise
+        terraform plan -no-color -input=false
+      continue-on-error: true
+      
+    - name: Terraform Apply
+      id: apply
+      run: |   
+        cd ${{env.REPOSITORY}}/github-user-teams
+        terraform apply -no-color -input=false -auto-approve
+      continue-on-error: false
