@@ -1,0 +1,54 @@
+name: Pull request Dry-run check
+on:
+  #push:
+    #branches: 
+      #- main
+  pull_request:
+    #types: [ opened, reopened ] 
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'
+      
+    - name: Execute Kubectl dry run
+      run: |
+        rm -rf .github/workflows
+        find qa[1-6] -type f -name "*.yaml" | while IFS= read -r yamlfile; do 
+        if [[ $(cat $yamlfile | grep "https://github.com/callruby/ruby-apps-deploy.git") ]] && [[ $( cat $yamlfile | grep "eks_ruby-eks-dev-7M2GCKM6") ]]; then
+          directory=$(dirname $yamlfile)
+          if [[ $(cat $yamlfile | grep $directory) ]] && [[ $(cat $yamlfile | grep "namespace: $directory-apps") ]]; then
+            echo "File $yamlfile seem ok"
+          else
+            echo "========================================================================"
+            echo "Invalid YAML"
+            echo "The directoy name is not used on the yaml file $yamlfile"
+            echo "The namespace should be directoryname-apps                              "
+            echo "========================================================================"
+            exit 1
+          fi
+        else
+          echo "========================================================================"
+          echo "Invalid YAML"
+          echo "Development Cluster has to be used as destination"
+          echo "ruby-apps-deploy repository has to be set"
+          echo "========================================================================"
+          exit 1
+        fi
+        done         
+        kubectl apply --recursive --dry-run -f .
+        
+    - name: Checkout code
+      uses: actions/checkout@v2
