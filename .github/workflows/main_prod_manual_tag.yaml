@@ -72,7 +72,8 @@ jobs:
           *)
             ECR_REPO_NAME=$EKS_SERVICE
            ;;
-        esac        
+        esac
+        echo "ECR_REPO_NAME=${ECR_REPO_NAME}" >> $GITHUB_ENV
         docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:production
         docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG callrubydev/$ECR_REPO_NAME:production
         docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:production
