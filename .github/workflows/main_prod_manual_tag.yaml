@@ -53,9 +53,41 @@ jobs:
         echo "===================================="
         echo "Tag Docker Image"
         echo "===================================="
+        case $EKS_SERVICE in
+          prl-frontend)
+            ECR_REPO_NAME=prlv2-frontend
+            ;;
+          servicehandling-service)
+            ECR_REPO_NAME=servicehandlingservice
+            ;;
+          prl-webapi)
+            ECR_REPO_NAME=prlv2-webapi
+            ;;
+          identity-service)
+            ECR_REPO_NAME=identity-server
+            ;;
+          employeedirectory-service)
+            ECR_REPO_NAME=employeedirectory
+            ;;                    
+          *)
+            ECR_REPO_NAME=$EKS_SERVICE
+           ;;
+        esac        
         docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:production
+        docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG callrubydev/$ECR_REPO_NAME:production
         docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:production
 
+    - name: Login to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    - name: (DEV) Push.
+      id: Push to DockerHub
+      run: |
+        callrubydev/$ECR_REPO_NAME:production
+        
     - name: Get current date
       id: date
       run: echo "::set-output name=date::$(date +'v%Y%m%d%S')"
