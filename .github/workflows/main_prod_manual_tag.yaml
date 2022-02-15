@@ -84,7 +84,7 @@ jobs:
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
     - name: (DEV) Push.
-      id: Push to DockerHub
+      id: push_dockerHub
       run: |
         callrubydev/$ECR_REPO_NAME:production
         
