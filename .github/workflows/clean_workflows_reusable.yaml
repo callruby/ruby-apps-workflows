@@ -18,6 +18,10 @@ jobs:
     - name: Clean Root workspace directory
       uses: AutoModality/action-clean@v1
     
+    - name: Docker clean up
+      run: |
+        docker rmi $(docker images -q)
+    
     - name: Prune cancelled/skipped runs
       uses: actions/github-script@v4
       with:
