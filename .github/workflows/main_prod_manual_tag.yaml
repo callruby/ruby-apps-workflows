@@ -84,10 +84,10 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-    - name: (DEV) Push.
+    - name: (DEV) Push to Dockerhub.
       id: push_dockerHub
       run: |
-        callrubydev/$ECR_REPO_NAME:production
+        docker push callrubydev/$ECR_REPO_NAME:production
         
     - name: Get current date
       id: date
