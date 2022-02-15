@@ -14,6 +14,7 @@ env:
     use_main_external_dockerfile_reusable.yaml=use_main_external_dockerfile_reusable.yaml
     use_main_pr_labels_reusable.yaml=use_main_pr_labels_reusable.yaml
     use_clean_old_commits_reusable.yaml=use_clean_old_commits_reusable.yaml
+    main_prod_manual_tag.yaml=main_prod_manual_tag.yaml
         
 jobs:
   Github_Workflow_Sync:
