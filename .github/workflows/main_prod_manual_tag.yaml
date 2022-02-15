@@ -2,12 +2,12 @@ on:
   workflow_dispatch:
     inputs:
       Tag:
-        description: 'Image tag to be set as latest'
+        description: 'Image tag to be set as production'
         type: string
         required: true
         default: 'GHRC_'        
       
-name: Set release image as latest.
+name: Set release image as production.
 env:
   REPOSITORY_WORKFLOW: "ruby-apps-workflows"
   AWS_DEFAULT_REGION: "us-west-1"
@@ -102,7 +102,7 @@ jobs:
         tag_name: ${{ env.IMAGE_TAG }}-${{ steps.date.outputs.date }}
         release_name: "Image: ${{ env.IMAGE_TAG }} on: ${{ steps.date.outputs.date }}"
         body: |
-          Pushed as latest ( image: ${{ env.IMAGE_TAG }} ) on Date: ${{ steps.date.outputs.date }} by ${{ github.event.sender.login }}|@${{ github.event.sender.login }}
+          Pushed as production ( image: ${{ env.IMAGE_TAG }} ) on Date: ${{ steps.date.outputs.date }} by ${{ github.event.sender.login }}|@${{ github.event.sender.login }}
         draft: false
         prerelease: true        
                 
