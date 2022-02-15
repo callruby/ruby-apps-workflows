@@ -1,0 +1,152 @@
+name: 'Terraform'
+
+on:
+  workflow_dispatch:
+    inputs:
+      Environment:
+        description: 'Account/Cluster to deploy'
+        type: choice
+        required: true
+        options: 
+        - Shared
+        - Dev
+        - Qa
+        - Prod
+      Password:
+        description: 'Password to trigger the terraform apply'
+        required: true
+        default: ''        
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    #container:
+      #image: ubuntu:latest
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        #run: echo "jo"
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  terraform:
+    name: 'Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        terraform_version: 0.13.5        
+
+    - name: Configure the Master AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    - name: Setup main file
+      id: setup
+      run: |
+        case ${{github.event.inputs.Environment}} in
+          1|Shared|shared|Shared)
+                ID=425300134585
+                ENVIRONMENT="shared"
+                KUBECONFIG="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
+          2|Dev|dev|DEV)
+                ID=793117784422
+                ENVIRONMENT="dev"
+                KUBECONFIG="kubeconfig_ruby-eks-dev-7M2GCKM6";;
+          3|Qa|QA|qa)
+                ID=143375371437
+                ENVIRONMENT="qa";;
+          4|Prod|PROD|prod)
+                ID=526706644784
+                ENVIRONMENT="prod";;
+          *)
+                exit 1;;
+        esac
+        echo "ID=${ID}" >> $GITHUB_ENV
+        echo "ENVIRONMENT=${ENVIRONMENT}" >> $GITHUB_ENV
+        echo "KUBECONFIG=${KUBECONFIG}" >> $GITHUB_ENV
+        sed -i -e "s,ACCOUNT_ID,$ID,g" deploy/main.tf
+        sed -i -e "s,KUBECONFIG_FILE,$KUBECONFIG,g" blueprint-aws-eks/blueprint-aws-eks-external-dns/main.tf
+        curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.18.9/2020-11-02/bin/linux/amd64/aws-iam-authenticator
+        chmod +x ./aws-iam-authenticator
+        sudo cp -f ./aws-iam-authenticator /usr/local/bin/aws-iam-authenticator
+        sudo cp -f ./aws-iam-authenticator /usr/bin/aws-iam-authenticator
+        
+    - name: Terraform fmt
+      id: fmt
+      run: |
+        cd deploy
+        terraform fmt -check
+      continue-on-error: true
+
+    - name: Terraform Init
+      id: init
+      run: |
+        pwd
+        cd deploy
+        terraform init
+
+    - name: .terraform permissions
+      run: |
+        ls -la
+        pwd
+        cd deploy
+        sudo chown -R runner:runner .terraform
+        
+    - name: Terraform Validate
+      id: validate
+      run: |
+        pwd
+        cd deploy      
+        terraform validate -no-color
+
+    - name: Terraform Plan
+      id: plan
+      run: |
+        pwd
+        cd deploy      
+        terraform plan -var-file=tf_files/${ENVIRONMENT}.tfvars -input=false -refresh=true
+      continue-on-error: true
+
+    - name: Check Password
+      id: CheckPassword
+      run: |
+        if [[ "${{github.event.inputs.Password}}" == "${{secrets.DEPLOY_PASSWORD}}" ]]; then
+          echo "===================================="
+          echo "The password match"
+          echo "===================================="
+          exit 0
+        else
+          echo "===================================="
+          echo "The password not match"
+          echo "===================================="
+          exit 1
+        fi
+        
+    - name: Terraform Apply
+      id: apply
+      run: |
+        pwd
+        cd deploy      
+        terraform apply -var-file=tf_files/${ENVIRONMENT}.tfvars -input=false -refresh=true -auto-approve
+      continue-on-error: true
