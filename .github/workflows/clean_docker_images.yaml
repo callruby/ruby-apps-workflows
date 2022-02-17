@@ -1,0 +1,45 @@
+name: Cleanup docker agent images
+on:
+  workflow_dispatch:
+    
+jobs:
+  agent-1:
+    name: Cleanup docker agent-1
+    runs-on: self-hosted
+    steps:
+     - name: Docker clean up
+        run: |
+          docker images
+          docker rmi $(docker images -q) || true;echo $? 
+  agent-2:
+    name: Cleanup docker agent-2
+    runs-on: self-hosted
+    steps:
+     - name: Docker clean up
+        run: |
+          docker images
+          docker rmi $(docker images -q) || true;echo $?
+  agent-3:
+    name: Cleanup docker agent-3
+    runs-on: self-hosted
+    steps:
+     - name: Docker clean up
+        run: |
+          docker images
+          docker rmi $(docker images -q) || true;echo $? 
+  agent-4:
+    name: Cleanup docker agent-4
+    runs-on: self-hosted
+    steps:
+     - name: Docker clean up
+        run: |
+          docker images
+          docker rmi $(docker images -q) || true;echo $?           
+  agent-5:
+    name: Cleanup docker agent-5
+    runs-on: self-hosted
+    steps:
+     - name: Docker clean up
+        run: |
+          docker images
+          docker rmi $(docker images -q) || true;echo $?           
