@@ -24,7 +24,7 @@ jobs:
   comment:
     runs-on: self-hosted
     #runs-on: ubuntu-latest
-    if: ${{ !github.event.issue.pull_request }} && (${{ github.event.comment.body == '/get_pod_ip' }} || ${{ github.event.comment.body == '/get_pod' }} || ${{ github.event.comment.body == '/get_pod_service' }} || ${{ github.event.comment.body == '/get_pod_status' }} || ${{ github.event.comment.body == '/get_pod_logs' }})
+    if: ! ${{ github.event.issue.pull_request }} && (${{ github.event.comment.body == '/get_pod_ip' }} || ${{ github.event.comment.body == '/get_pod' }} || ${{ github.event.comment.body == '/get_pod_service' }} || ${{ github.event.comment.body == '/get_pod_status' }} || ${{ github.event.comment.body == '/get_pod_logs' }})
     steps:
       - uses: azure/setup-kubectl@v1
         with:
