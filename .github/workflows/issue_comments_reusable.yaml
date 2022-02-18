@@ -97,6 +97,7 @@ jobs:
           #echo ${{env.KUBE_OUTPUT}}
 
       - uses: actions/github-script@v4
+        if: ${{ env.KUBE_OUTPUT != '' }}
         with:
           script: |
             github.issues.createComment({
