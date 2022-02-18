@@ -91,6 +91,7 @@ jobs:
           #echo ${{env.KUBE_OUTPUT}}
 
       - uses: actions/github-script@v4
+        if: ${{ !github.event.issue.pull_request }} && (${{ github.event.comment.body == '/get_pod_ip' }} || ${{ github.event.comment.body == '/get_pod' }} || ${{ github.event.comment.body == '/get_pod_service' }} || ${{ github.event.comment.body == '/get_pod_status' }} || ${{ github.event.comment.body == '/get_pod_logs' }})
         with:
           script: |
             github.issues.createComment({
