@@ -33,6 +33,7 @@ jobs:
       - name: Debug
         run: |
           env
+          cat /home/runner/_work/_temp/_github_workflow/event.json
 
       - name: Executing get pods
         id: kubectl
