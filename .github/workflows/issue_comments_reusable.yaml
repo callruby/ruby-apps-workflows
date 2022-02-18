@@ -30,6 +30,10 @@ jobs:
         with:
           version: 'v1.15.0'
 
+      - name: Debug
+        run: |
+          env
+
       - name: Executing get pods
         id: kubectl
         if: ${{ github.event.comment.body == '/get_pod' }}
