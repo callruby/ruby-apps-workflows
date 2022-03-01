@@ -20,6 +20,7 @@ jobs:
   init:
     #runs-on: self-hosted
     runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+    name: 'APP ${{github.event.inputs.Application}} TAG ${{github.event.inputs.Tag}}'
 
     steps:
     - uses: actions/checkout@v2.0.0
@@ -597,4 +598,4 @@ jobs:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into PROD (manual deployment), result: ${{ job.status }}\n"
       env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
