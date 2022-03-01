@@ -3,42 +3,11 @@ name: 'Env tester'
 on:
   workflow_dispatch: #workflow_call:
     inputs:
-      Environment:
-        description: 'Environment where has to be deployed'
-        type: choice
-        required: true
-        options: 
-        - qa1
-        - qa2
-        - qa3
-        - qa4
-        - qa5
-        - qa6
       Tag:
         description: 'Image Tag be deployed Qa1-Qa6'
         type: string
         required: true
         default: ''
-      secrets:
-      PAT:
-        required: true
-      GPG_PRIVATE_KEY:
-        required: true
-      GPG_PASSPHRASE:
-        required: true
-      EKS_SERVICE:
-        required: true
-      AWS_DEFAULT_REGION:
-        required: true
-      PFX_CERT:
-        required: true
-      SSL_PEM_CERT:
-        required: true
-      SSL_PEM_KEY:
-        required: true
-      NUGET_CONFIG:
-        required: true
-
 jobs:   
   DeployQA1:
     name: 'QA1'
