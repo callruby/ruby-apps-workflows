@@ -28,6 +28,7 @@ jobs:
   DeployQA2:
     name: 'QA2'
     runs-on: ubuntu-latest
+    needs: DeployQA1
     environment:
       name: QA2    
     defaults:
@@ -49,6 +50,7 @@ jobs:
   DeployPROD:
     name: 'PROD'
     runs-on: ubuntu-latest
+    needs: [DeployQA1,DeployQA2]
     environment:
       name: PROD    
     defaults:
