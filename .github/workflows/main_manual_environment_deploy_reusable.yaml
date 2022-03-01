@@ -11,6 +11,38 @@ on:
         - account-service
         - activity-service
         - backsync-service
+        - callcontrol-service
+        - cic-webapi
+        - clio-service
+        - cliogrow-service
+        - customer-api
+        - employeedirectory-service
+        - identity-service
+        - mycase-service
+        - prl-authentication-service
+        - prl-frontend
+        - prl-webapi
+        - professional-chats
+        - ros-frontend
+        - ros-webapi
+        - grasshopper-service
+        - partner-integration-service
+        - pco-service
+        - partner-api
+        - prl-webapi
+        - rocketmatter-service
+        - rossupport-service
+        - salesforce-service
+        - notification-service
+        - servicehandling-service
+        - stripe-service
+        - twilio-service
+        - zuora-service
+        - zuora-frontend
+        - zuora-webapi
+        - spoofing-service
+        - stripe-service
+        - twilio-service
       Tag:
         description: 'Image Tag be deployed Qa1-6 and PROD'
         type: string
