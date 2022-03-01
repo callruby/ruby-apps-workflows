@@ -1,0 +1,55 @@
+name: 'Terraform test'
+
+on:
+  workflow_dispatch:
+    inputs:
+      Environment:
+        description: 'Account/Cluster to deploy'
+        type: choice
+        required: true
+        options: 
+        - Shared
+        - Dev
+        - Qa
+        - Prod
+
+jobs:   
+  Deploy:
+    name: 'Choose an environment'
+    runs-on: self-hosted
+    needs: cleanup
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+                
+    - name: Checkout
+      uses: actions/checkout@v2
+        
+    - name: Deploy to QA1
+      environment:
+        name: QA1   
+      id: QA1
+      run: |
+        pwd
+        echo "test1"
+        
+    - name: Deploy to QA2
+      id: QA2
+      environment:
+        name: QA2      
+      run: |
+        pwd
+        echo "test2"
+      continue-on-error: true
+  
+    - name: Deploy to PROD
+      id: PROD
+      environment:
+        name: PROD      
+      run: |
+        pwd
+        echo "prod"
+      continue-on-error: true
+  
