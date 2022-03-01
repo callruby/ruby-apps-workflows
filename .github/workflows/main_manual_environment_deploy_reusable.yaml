@@ -89,7 +89,6 @@ jobs:
           git config user.email "check-action@github"
           git config user.name "check-action"
           git pull
-          #git add kustomization.yml
           git add values.yaml
           git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
           set +e
@@ -163,7 +162,6 @@ jobs:
           git config user.email "check-action@github"
           git config user.name "check-action"
           git pull
-          #git add kustomization.yml
           git add values.yaml
           git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
           set +e
@@ -234,7 +232,6 @@ jobs:
           git config user.email "check-action@github"
           git config user.name "check-action"
           git pull
-          #git add kustomization.yml
           git add values.yaml
           git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
           set +e
@@ -303,7 +300,6 @@ jobs:
           git config user.email "check-action@github"
           git config user.name "check-action"
           git pull
-          #git add kustomization.yml
           git add values.yaml
           git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
           set +e
@@ -372,7 +368,6 @@ jobs:
           git config user.email "check-action@github"
           git config user.name "check-action"
           git pull
-          #git add kustomization.yml
           git add values.yaml
           git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
           set +e
@@ -441,7 +436,6 @@ jobs:
           git config user.email "check-action@github"
           git config user.name "check-action"
           git pull
-          #git add kustomization.yml
           git add values.yaml
           git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
           set +e
@@ -510,7 +504,6 @@ jobs:
           git config user.email "check-action@github"
           git config user.name "check-action"
           git pull
-          #git add kustomization.yml
           git add values.yaml
           git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
           set +e
