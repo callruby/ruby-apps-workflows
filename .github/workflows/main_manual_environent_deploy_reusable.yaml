@@ -8,10 +8,56 @@ on:
         type: string
         required: true
         default: ''
-jobs:   
+jobs:
+  init:
+    #runs-on: self-hosted
+    runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: (GLOBAL) Configure Service name.
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+        echo "AWS_WEB_IDENTITY_TOKEN_FILE=" >> $GITHUB_ENV
+        
+    - name: (GLOBAL) Debug
+      run: |
+        echo "Environment: ${{github.event.inputs.Environment}}"
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'        
+
+    - name: Import GPG key
+      uses: crazy-max/ghaction-import-gpg@v4
+      with:
+        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+        passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        git_user_signingkey: true
+        git_commit_gpgsign: true
+        
+    - uses: imranismail/setup-kustomize@v1
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: us-west-1
+
   DeployQA1:
     name: 'QA1'
     runs-on: ubuntu-latest
+    needs: init
     environment:
       name: QA1    
     defaults:
@@ -23,17 +69,68 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
-    - name: Deploy to QA1  
-      id: QA1
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
       run: |
-        pwd
-        echo "QA1"
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
+        ENV=qa1
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
+        ls -la
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        if [[ -n "$IMAGE_EXIST" ]]; then
+          echo "================================================================================"
+          echo "Image exist on ECR!!!!!!!!!"
+          echo "================================================================================"
+          sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:${{github.event.inputs.Tag}}|g" values.yaml
+          cat values.yaml
+          git config user.email "check-action@github"
+          git config user.name "check-action"
+          git pull
+          #git add kustomization.yml
+          git add values.yaml
+          git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+            git push origin master
+          fi
+        else
+          echo "================================================================================"
+          echo "Image not exist on ECR please check" 
+          echo "================================================================================"
+          exit 1
+        fi
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA1 (manual deployment), result: ${{ job.status }}\n"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        
+    - name: Checkout code
+      uses: actions/checkout@v2
         
 
   DeployQA2:
     name: 'QA2'
     runs-on: ubuntu-latest
-    #needs: DeployQA1
+    needs: init
     environment:
       name: QA2    
     defaults:
@@ -45,17 +142,65 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
-    - name: Deploy to QA2
-      id: QA2
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
       run: |
-        pwd
-        echo "QA2"
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
+        ENV=qa2
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
+        ls -la
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        if [[ -n "$IMAGE_EXIST" ]]; then
+          echo "================================================================================"
+          echo "Image exist on ECR!!!!!!!!!"
+          echo "================================================================================"
+          sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:${{github.event.inputs.Tag}}|g" values.yaml
+          cat values.yaml
+          git config user.email "check-action@github"
+          git config user.name "check-action"
+          git pull
+          #git add kustomization.yml
+          git add values.yaml
+          git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+            git push origin master
+          fi
+        else
+          echo "================================================================================"
+          echo "Image not exist on ECR please check" 
+          echo "================================================================================"
+          exit 1
+        fi
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA2 (manual deployment), result: ${{ job.status }}\n"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         
 
   DeployQA3:
     name: 'QA3'
     runs-on: ubuntu-latest
-    #needs: [DeployQA1,DeployQA2]
+    needs: init
     environment:
       name: QA3    
     defaults:
@@ -67,16 +212,64 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
-    - name: Deploy to QA3
-      id: QA3
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
       run: |
-        pwd
-        echo "QA3"
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
+        ENV=qa3
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
+        ls -la
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        if [[ -n "$IMAGE_EXIST" ]]; then
+          echo "================================================================================"
+          echo "Image exist on ECR!!!!!!!!!"
+          echo "================================================================================"
+          sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:${{github.event.inputs.Tag}}|g" values.yaml
+          cat values.yaml
+          git config user.email "check-action@github"
+          git config user.name "check-action"
+          git pull
+          #git add kustomization.yml
+          git add values.yaml
+          git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+            git push origin master
+          fi
+        else
+          echo "================================================================================"
+          echo "Image not exist on ECR please check" 
+          echo "================================================================================"
+          exit 1
+        fi
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA3 (manual deployment), result: ${{ job.status }}\n"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
   DeployQA4:
     name: 'QA4'
     runs-on: ubuntu-latest
-    #needs: [DeployQA1,DeployQA2,DeployQA3]
+    needs: init
     environment:
       name: QA4    
     defaults:
@@ -87,16 +280,64 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
-    - name: Deploy to QA4
-      id: QA4
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
       run: |
-        pwd
-        echo "QA4"
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
+        ENV=qa4
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
+        ls -la
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        if [[ -n "$IMAGE_EXIST" ]]; then
+          echo "================================================================================"
+          echo "Image exist on ECR!!!!!!!!!"
+          echo "================================================================================"
+          sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:${{github.event.inputs.Tag}}|g" values.yaml
+          cat values.yaml
+          git config user.email "check-action@github"
+          git config user.name "check-action"
+          git pull
+          #git add kustomization.yml
+          git add values.yaml
+          git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+            git push origin master
+          fi
+        else
+          echo "================================================================================"
+          echo "Image not exist on ECR please check" 
+          echo "================================================================================"
+          exit 1
+        fi
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA4 (manual deployment), result: ${{ job.status }}\n"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         
   DeployQA5:
     name: 'QA5'
     runs-on: ubuntu-latest
-    #needs: [DeployQA1,DeployQA2,DeployQA3,DeployQA4]
+    needs: init
     environment:
       name: QA5
     defaults:
@@ -107,16 +348,64 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
-    - name: Deploy to QA5
-      id: QA5
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
       run: |
-        pwd
-        echo "QA5"
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
+        ENV=qa5
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
+        ls -la
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        if [[ -n "$IMAGE_EXIST" ]]; then
+          echo "================================================================================"
+          echo "Image exist on ECR!!!!!!!!!"
+          echo "================================================================================"
+          sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:${{github.event.inputs.Tag}}|g" values.yaml
+          cat values.yaml
+          git config user.email "check-action@github"
+          git config user.name "check-action"
+          git pull
+          #git add kustomization.yml
+          git add values.yaml
+          git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+            git push origin master
+          fi
+        else
+          echo "================================================================================"
+          echo "Image not exist on ECR please check" 
+          echo "================================================================================"
+          exit 1
+        fi
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA5 (manual deployment), result: ${{ job.status }}\n"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
         
   DeployQA6:
     name: 'QA6'
     runs-on: ubuntu-latest
-    needs: [DeployQA1,DeployQA2,DeployQA3,DeployQA4,DeployQA5]
+    needs: [init,DeployQA1,DeployQA2,DeployQA3,DeployQA4,DeployQA5]
     environment:
       name: QA6    
     defaults:
@@ -127,16 +416,64 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
-    - name: Deploy to QA6
-      id: QA6
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
       run: |
-        pwd
-        echo "QA6"        
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
+        ENV=qa6
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
+        ls -la
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        if [[ -n "$IMAGE_EXIST" ]]; then
+          echo "================================================================================"
+          echo "Image exist on ECR!!!!!!!!!"
+          echo "================================================================================"
+          sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:${{github.event.inputs.Tag}}|g" values.yaml
+          cat values.yaml
+          git config user.email "check-action@github"
+          git config user.name "check-action"
+          git pull
+          #git add kustomization.yml
+          git add values.yaml
+          git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+            git push origin master
+          fi
+        else
+          echo "================================================================================"
+          echo "Image not exist on ECR please check" 
+          echo "================================================================================"
+          exit 1
+        fi
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA6 (manual deployment), result: ${{ job.status }}\n"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
 
   DeployPROD:
     name: 'PROD'
     runs-on: ubuntu-latest
-    needs: [DeployQA1,DeployQA2,DeployQA3,DeployQA4,DeployQA5,DeployQA6]
+    needs: [init,DeployQA1,DeployQA2,DeployQA3,DeployQA4,DeployQA5,DeployQA6]
     environment:
       name: PROD    
     defaults:
@@ -147,8 +484,56 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
-    - name: Deploy to PROD  
-      id: PROD
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+      id: UpdateTag
       run: |
-        pwd
-        echo "PROD"        
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
+        ENV=prod
+        ls -la ruby-apps-deploy
+        cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
+        ls -la
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        if [[ -n "$IMAGE_EXIST" ]]; then
+          echo "================================================================================"
+          echo "Image exist on ECR!!!!!!!!!"
+          echo "================================================================================"
+          sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:${{github.event.inputs.Tag}}|g" values.yaml
+          cat values.yaml
+          git config user.email "check-action@github"
+          git config user.name "check-action"
+          git pull
+          #git add kustomization.yml
+          git add values.yaml
+          git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+          set +e
+          git push origin master > error 
+          cat error
+          if [[ $(cat error | grep -c "error" ) -eq 1 ]]; then
+            echo "========================================================"
+            echo "Retrying...."
+            echo "========================================================"
+            set -e
+            sleep 5
+            git pull
+            git commit -m "Update ${EKS_SERVICE} image to ${{github.event.inputs.Tag}} on deploy folder/file $ENV"
+            git push origin master
+          fi
+        else
+          echo "================================================================================"
+          echo "Image not exist on ECR please check" 
+          echo "================================================================================"
+          exit 1
+        fi
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into PROD (manual deployment), result: ${{ job.status }}\n"
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}        
