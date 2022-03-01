@@ -4,9 +4,11 @@ on:
   workflow_dispatch:
 
 jobs:   
-  Deploy:
-    name: 'Choose an environment'
+  DeployQA1:
+    name: 'QA1'
     runs-on: ubuntu-latest
+    environment:
+      name: QA1    
     defaults:
       run:
         shell: bash
@@ -16,29 +18,50 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
-    - name: Deploy to QA1
-      env:
-        name: QA1   
+    - name: Deploy to QA1  
       id: QA1
       run: |
         pwd
-        echo "test1"
+        echo "QA1"
+        
+
+  DeployQA2:
+    name: 'QA2'
+    runs-on: ubuntu-latest
+    environment:
+      name: QA2    
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+                
+    - name: Checkout
+      uses: actions/checkout@v2
         
     - name: Deploy to QA2
       id: QA2
-      env:
-        name: QA2      
       run: |
         pwd
-        echo "test2"
-      continue-on-error: true
-  
-    - name: Deploy to PROD
+        echo "QA2"
+        
+
+  DeployPROD:
+    name: 'PROD'
+    runs-on: ubuntu-latest
+    environment:
+      name: PROD    
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+                
+    - name: Checkout
+      uses: actions/checkout@v2
+        
+    - name: Deploy to PROD  
       id: PROD
-      env:
-        name: PROD      
       run: |
         pwd
-        echo "prod"
-      continue-on-error: true
-  
+        echo "test1"        
