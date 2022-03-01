@@ -121,6 +121,7 @@ jobs:
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
+      if: always()
       with:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA1 (manual deployment), result: ${{ job.status }}\n"
@@ -201,6 +202,7 @@ jobs:
         fi
     - name: Post to a Slack channel
       id: slack
+      if: always()
       uses: slackapi/slack-github-action@v1.17.0
       with:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
@@ -280,6 +282,7 @@ jobs:
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
+      if: always()
       with:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA3 (manual deployment), result: ${{ job.status }}\n"
@@ -356,6 +359,7 @@ jobs:
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
+      if: always()
       with:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA4 (manual deployment), result: ${{ job.status }}\n"
@@ -432,6 +436,7 @@ jobs:
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
+      if: always()
       with:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA5 (manual deployment), result: ${{ job.status }}\n"
@@ -508,6 +513,7 @@ jobs:
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
+      if: always()
       with:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into QA6 (manual deployment), result: ${{ job.status }}\n"
@@ -584,6 +590,7 @@ jobs:
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
+      if: always()
       with:
         channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
         slack-message: "Image ${{env.EKS_SERVICE}}:${{github.event.inputs.Tag}} was selected to be deployed into PROD (manual deployment), result: ${{ job.status }}\n"
