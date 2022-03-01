@@ -1,9 +1,23 @@
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
 ENV APP Ruby.Identity
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+ARG SONAR_PROJECT_KEY=grasshopper-service
+ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
+ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
+
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y openjdk-11-jdk && \
+    dotnet tool install --global dotnet-sonarscanner
+
 COPY . ./
-RUN dotnet nuget locals --clear all
+RUN dotnet nuget locals --clear all && \
+    cd src/${APP}.Service && \
+    dotnet sonarscanner begin \
+    /k:"$SONAR_PROJECT_KEY" \
+    /d:sonar.host.url="$SONAR_HOST_URL" \
+    /d:sonar.login="$SONAR_TOKEN"
 
 RUN dotnet restore ./${APP}.sln && \
     cd src/${APP}.Service && \
@@ -12,6 +26,7 @@ RUN dotnet restore ./${APP}.sln && \
     dotnet test && \
     cd ../${APP}.Service && \    
     dotnet publish -c Release -o /app/${APP}/out/ && \
+    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
     cp -fr $HOME/.nuget /app/${APP}/out/
 #----------------------------------------------------------------
 
