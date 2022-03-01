@@ -10,8 +10,8 @@ on:
         default: ''
 jobs:
   init:
-    #runs-on: self-hosted
-    runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
 
     steps:
     - uses: actions/checkout@v2.0.0
@@ -53,7 +53,7 @@ jobs:
 
   DeployQA1:
     name: 'QA1'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: init
     environment:
       name: QA1    
@@ -126,7 +126,7 @@ jobs:
 
   DeployQA2:
     name: 'QA2'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: init
     environment:
       name: QA2    
@@ -197,7 +197,7 @@ jobs:
 
   DeployQA3:
     name: 'QA3'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: init
     environment:
       name: QA3    
@@ -267,7 +267,7 @@ jobs:
 
   DeployQA4:
     name: 'QA4'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: init
     environment:
       name: QA4    
@@ -336,7 +336,7 @@ jobs:
         
   DeployQA5:
     name: 'QA5'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: init
     environment:
       name: QA5
@@ -405,7 +405,7 @@ jobs:
         
   DeployQA6:
     name: 'QA6'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [init,DeployQA1,DeployQA2,DeployQA3,DeployQA4,DeployQA5]
     environment:
       name: QA6    
@@ -474,7 +474,7 @@ jobs:
 
   DeployPROD:
     name: 'PROD'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [init,DeployQA1,DeployQA2,DeployQA3,DeployQA4,DeployQA5,DeployQA6]
     environment:
       name: PROD    
