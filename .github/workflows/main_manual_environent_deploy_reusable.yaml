@@ -1,10 +1,10 @@
-name: 'Env tester'
+name: 'Application TAG environment deployer'
 
 on:
   workflow_dispatch: #workflow_call:
     inputs:
       Tag:
-        description: 'Image Tag be deployed Qa1-Qa6'
+        description: 'Image Tag be deployed Qa1-6 and PROD'
         type: string
         required: true
         default: ''
