@@ -65,6 +65,14 @@ jobs:
                 
     - name: Checkout
       uses: actions/checkout@v2
+      
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'        
         
     - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
@@ -138,6 +146,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'          
+        
     - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
       run: |
@@ -208,6 +224,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'          
+        
     - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
       run: |
@@ -275,6 +299,14 @@ jobs:
     steps:     
     - name: Checkout
       uses: actions/checkout@v2
+        
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'          
         
     - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
@@ -344,6 +376,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'          
+        
     - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
       run: |
@@ -412,6 +452,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
         
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'          
+        
     - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
       run: |
@@ -479,6 +527,14 @@ jobs:
     steps:      
     - name: Checkout
       uses: actions/checkout@v2
+        
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'          
         
     - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
