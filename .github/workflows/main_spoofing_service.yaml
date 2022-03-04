@@ -1,13 +1,10 @@
 on:
-  push:
-    branches: 
-      - release
-      - release_v1
+  workflow_dispatch:
  
-name: Create Tag & Release After Dev Deploy
+name: Spoofing - Create Tag & Release After Dev Deploy
 
 env:
-  REPOSITORY: "ruby-apps-deploy"
+  REPOSITORY_WORKFLOW: "ruby-apps-workflows"
   AWS_DEFAULT_REGION: "us-west-1"
 jobs:
   build:
@@ -22,27 +19,20 @@ jobs:
          continue-after-seconds: 500 
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+                      
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_WORKFLOW}} repository
       uses: actions/checkout@master
       with:
         token: ${{ secrets.PAT }}
-        repository: callruby/${{env.REPOSITORY}}
-        path: ${{env.REPOSITORY}}
+        repository: callruby/${{env.REPOSITORY_WORKFLOW}}
+        path: ${{env.REPOSITORY_WORKFLOW}}
         ref: 'master'
-        fetch-depth: 1
+        fetch-depth: 1                  
                   
-    - name: Import GPG key
-      uses: crazy-max/ghaction-import-gpg@v4
-      with:
-        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-        passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        git_user_signingkey: true
-        git_commit_gpgsign: true
-        
     - name: (GLOBAL) Configure Service name.
       run: |
-        echo "EKS_SERVICE=spoofing" >> $GITHUB_ENV      
+        echo "EKS_SERVICE=spoofing" >> $GITHUB_ENV
+        #echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
    
    #Comment if it has to be run on a public Agent 
     - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
@@ -58,11 +48,13 @@ jobs:
         #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
         
-    - name: Get short SHA
+    - name: Set Image TAG
       id: slug
       run: |
-        echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
-        echo ${GITHUB_SHA} | cut -c1-7
+        #echo "IMAGE_TAG=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_ENV
+        echo "IMAGE_TAG=$(echo "GHRC_$(date +%Y%m%dT%H.%M.%S)")" >> $GITHUB_ENV
+        #echo ${GITHUB_SHA} | cut -c1-7
+        echo "IMAGE_TAG=$(echo "GHRC_$(date +%Y%m%dT%H.%M.%S)")"
 
     - name: (SHARED) Login to Amazon ECR
       id: login-ecr
@@ -77,7 +69,11 @@ jobs:
         echo "IMAGE_TAG: $IMAGE_TAG"
         echo "EKS_SERVICE: ${EKS_SERVICE}"
         echo "===================================="
+        ls -la ruby-apps-workflows/Dockerfile*
+        cp -f ruby-apps-workflows/Dockerfile-${EKS_SERVICE}-service-sonarqube Dockerfile
         echo '${{ secrets.PFX_CERT }}' | base64 --decode >> ssl_cert.pfx
+        echo '${{ secrets.SSL_PEM_CERT }}' | base64 --decode >> ssl_cert.pem
+        echo '${{ secrets.SSL_PEM_KEY }}' | base64 --decode >> ssl_key.pem
         echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
         echo "Building Docker Image"
         cp -fr Microservices/Ruby.Microservices.Spoofing.RabbitMQ.Tests Microservices/Spoofing/Ruby.Microservices.Spoofing.RabbitMQ.Tests
@@ -139,6 +135,57 @@ jobs:
           git pull
           git commit -m "Update ${EKS_SERVICE} image to ${IMAGE_TAG} on deploy file"
           git push origin master
-        fi 
+        fi
+        
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      if: always()
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        #slack-message: "Pull Request pipeline on ruby-apps-deploy repository was ended, result: ${{ job.status }}\n"
+        payload: |
+            {
+              "text": ":github: New Image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.repository }} from RELEASE branch - Status: ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":github: New Image ${{env.EKS_SERVICE}}:${{env.IMAGE_TAG}} for ${{ github.repository }} - Status: ${{ job.status }}\n\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Author: <https://github.com/${{ github.event.sender.login }}|@${{ github.event.sender.login }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "Commit Sha: >${{ github.sha }}>"
+                    }                    
+                  ]
+                },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Pipeline Execution: Press Here"
+                    },
+                    "url": "${{env.button_url}}"
+                  }
+                ]
+              }                
+              ]
+            }          
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        
     - name: Checkout code
       uses: actions/checkout@v2
