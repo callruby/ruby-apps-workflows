@@ -1,0 +1,46 @@
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
+ENV APP Ruby.Microservices.Partner.MyCase
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+ARG SONAR_PROJECT_KEY=mycase-service
+ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
+ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y openjdk-11-jdk && \
+    dotnet tool install --global dotnet-sonarscanner
+    
+COPY . ./
+RUN dotnet nuget locals --clear all && \
+    cd ${APP} && \
+    dotnet sonarscanner begin \
+    /k:"$SONAR_PROJECT_KEY" \
+    /d:sonar.host.url="$SONAR_HOST_URL" \
+    /d:sonar.login="$SONAR_TOKEN"
+
+RUN dotnet restore ./${APP}.sln && \
+    cd ${APP} && \
+    dotnet build ${APP}.csproj && \
+    cd ../${APP}.Unit.Tests && \
+    dotnet test && \
+    cd ../${APP} && \    
+    dotnet publish -c Release -o /app/${APP}/out/ && \
+    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
+    cp -fr $HOME/.nuget /app/${APP}/out/
+#----------------------------------------------------------------
+
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1
+ENV APP Ruby.Microservices.Partner.MyCase
+WORKDIR /app
+
+ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
+COPY ${APP}/confd /etc/confd
+RUN chmod +x /etc/confd/start.sh && \
+    apt-get update && apt-get install -y dos2unix && \
+    find /etc/confd -type f | xargs dos2unix && apt-get --purge remove -y dos2unix && rm -rf /var/lib/apt/lists/* && \
+    chmod +x /usr/local/bin/confd
+
+COPY --from=builder /app/${APP}/out/ . 
+RUN mv -f .nuget/ /root/.nuget
+ENTRYPOINT ["/etc/confd/start.sh"]
