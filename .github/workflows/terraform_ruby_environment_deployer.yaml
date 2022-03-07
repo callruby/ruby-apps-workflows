@@ -1,0 +1,87 @@
+name: 'Terraform apply'
+
+on:
+  push:
+    branches: 
+      - main
+      
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        #run: echo "jo"
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  terraform:
+    name: 'Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        terraform_version: 0.14.0        
+
+    - name: Configure the Master AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    - name: Terraform fmt
+      id: fmt
+      run: |
+        terraform fmt -check
+      continue-on-error: true
+
+    - name: Terraform Init
+      id: init
+      run: |
+        pwd
+        terraform init
+
+    - name: .terraform permissions
+      run: |
+        ls -la
+        pwd
+        sudo chown -R runner:runner .terraform
+        
+    - name: Terraform Validate
+      id: validate
+      run: |
+        pwd      
+        terraform validate -no-color
+        echo "TF_VAR_gh_token=${{secrets.PAT}}" >> $GITHUB_ENV
+
+    - name: Terraform Plan
+      id: plan
+      run: |
+        pwd      
+        TF_X_CONCISE_DIFF=0 terraform plan -input=false -refresh=true
+      continue-on-error: true
+        
+    - name: Terraform Apply
+      id: apply
+      run: |
+        pwd      
+        TF_X_CONCISE_DIFF=0 terraform apply -input=false -refresh=true -auto-approve
+      continue-on-error: true
