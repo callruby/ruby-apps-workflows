@@ -1,0 +1,72 @@
+name: 'Set release image as production.'
+
+on:
+  repository_dispatch:
+    types: [terraform]
+    
+jobs:
+  init:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+    name: 'Set release image as production'
+
+    steps:
+    
+    - uses: actions/checkout@v2.0.0
+    
+    - name: Set-Global-Variables
+      run: |
+        echo "EKS_SERVICE=${{github.event.client_payload.Application}}" >> $GITHUB_ENV
+        echo "IMAGE_TAG=${{github.event.client_payload.Tag}}" >> $GITHUB_ENV
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Pull & TAG.
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        docker pull ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG
+        echo "===================================="
+        echo "Tag Docker Image"
+        echo "===================================="
+        case $EKS_SERVICE in
+          prl-frontend)
+            ECR_REPO_NAME=prlv2-frontend
+            ;;
+          servicehandling-service)
+            ECR_REPO_NAME=servicehandlingservice
+            ;;
+          prl-webapi)
+            ECR_REPO_NAME=prlv2-webapi
+            ;;
+          identity-service)
+            ECR_REPO_NAME=identity-server
+            ;;
+          employeedirectory-service)
+            ECR_REPO_NAME=employeedirectory
+            ;;                    
+          *)
+            ECR_REPO_NAME=$EKS_SERVICE
+           ;;
+        esac
+        echo "ECR_REPO_NAME=${ECR_REPO_NAME}" >> $GITHUB_ENV
+        docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:production
+        docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG callrubydev/$ECR_REPO_NAME:production
+        docker images
+        
+    - name: Checkout code
+      uses: actions/checkout@v2
