@@ -9,11 +9,15 @@ Because we need to have the control and facility to update the Dockerfile and wo
 Differences with the application repository Dockerfiles
 
 ```
-Currently we have Sonarqube on the Dockerfile's  and also we have the build process on the Dockerfile
+We dont want to interrupt Development work
+
+and we need to update the Dockerfile's the fastest possible
+
+Currently we have Sonarqube on the Dockerfile's  and also we have the build,unit test process on the Dockerfile
 
 the dockerfile are written in way to be run on the root path of the repository
 
-Some of the Dockerfile needs secrets or certificates in order to be used 
+Some of Dockerfile needs secrets or certificates in order to be used
 ```
 
 PAT ( Personal Access Token is needed ) github variables has to be set for Github Actions.
