@@ -82,7 +82,15 @@ jobs:
     - name: Execute Liquibase
       run: |
         ls -la changelog
-        sudo /usr/local/bin/liquibase --changeLogFile=changelog/changelog.xml --url="jdbc:sqlserver://127.0.0.1:${{ job.services.sqlserver.ports[1433] }};database=tempdb" --username=SA --password=yourStrongP@ssword --logLevel=INFO update  
+        cd changelog
+        find -type f -name "*.xml" | while IFS= read -r xmlfile; do
+          DB=$(echo $xmlfile | sed -e 's,.*/,,g' | sed 's,changelog.xml,,' | tr -d _)
+          if [[ -z "$DB" ]]; then
+            DB=tempdb
+          fi
+          echo "Database: $DB"
+          sudo /usr/local/bin/liquibase --changeLogFile=$xmlfile --url="jdbc:sqlserver://127.0.0.1:${{ job.services.sqlserver.ports[1433] }};database=$DB" --username=SA --password=yourStrongP@ssword --logLevel=INFO update  
+        done  
            
   build:
     environment: default
