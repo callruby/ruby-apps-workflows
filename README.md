@@ -2,6 +2,19 @@
 
 Where the workflows & Dockerfile and start.sh files of all services are.
 
+Why ?
+
+Because we need to have the control and facility to update the Dockerfile and workflows at demand
+
+Differences with the application repository Dockerfiles
+
+```
+Currently we have Sonarqube on the Dockerfile's  and also we have the build process on the Dockerfile
+
+the dockerfile are written in way to be run on the root path of the repository
+
+Some of the Dockerfile needs secrets or certificates in order to be used 
+```
 
 PAT ( Personal Access Token is needed ) github variables has to be set for Github Actions.
 
