@@ -78,9 +78,19 @@ jobs:
         sudo mkdir -p /tmp/mysql
         sudo tar -xvf /tmp/mysql.tgz -C /tmp/mysql --strip-components=1
         sudo cp /tmp/mysql/*.jar /usr/local/lib/liquibase/lib
+        
     - name: Execute Liquibase
       run: |
-        sudo /usr/local/bin/liquibase --url=jdbc:mariadb://127.0.0.1:${{ job.services.mariadb.ports[3306] }}/test?autoReconnect=true"&"useSSL=false --changeLogFile=changelog/changelog.xml --username=root --password=root --logLevel=INFO update
+        ls -la changelog
+        cd changelog
+        find -type f -name "*.xml" | while IFS= read -r xmlfile; do
+          DB=$(echo $xmlfile | sed -e 's,.*/,,g' | sed 's,changelog.xml,,' | tr -d _)
+          if [[ -z "$DB" ]]; then
+            DB=test
+          fi
+          echo "Database: $DB"
+          sudo /usr/local/bin/liquibase --changeLogFile=$xmlfile --url=jdbc:mariadb://127.0.0.1:${{ job.services.mariadb.ports[3306] }}/$DB?autoReconnect=true"&"useSSL=false --username=root --password=root --logLevel=INFO update  
+        done        
 
   build:
     environment: default
