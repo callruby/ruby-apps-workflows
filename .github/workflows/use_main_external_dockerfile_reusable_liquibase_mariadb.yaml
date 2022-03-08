@@ -1,4 +1,4 @@
-name: Use reusable docker external liquibase build pipeline
+name: Use reusable docker external liquibase build pipeline - MariaDb
 
 on:
   push:
