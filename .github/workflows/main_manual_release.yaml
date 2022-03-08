@@ -59,7 +59,7 @@ jobs:
     - name: Set Image Tag
       id: slug
       run: |
-        echo "IMAGE_TAG=$(echo "${{github.event.inputs.Environment}}" >> $GITHUB_ENV
+        echo "IMAGE_TAG=$(echo "${{github.event.inputs.Tag}}" >> $GITHUB_ENV
         
     - name: (SHARED) Login to Amazon ECR
       id: login-ecr
