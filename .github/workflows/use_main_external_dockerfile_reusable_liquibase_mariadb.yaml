@@ -6,7 +6,7 @@ on:
       - release
 jobs:
   docker:
-    uses: callruby/ruby-apps-workflows/.github/workflows/main_external_dockerfile_reusable_liquibase.yaml@master
+    uses: callruby/ruby-apps-workflows/.github/workflows/main_external_dockerfile_reusable_liquibase_mariadb.yaml@master
     with:
       tag: $GITHUB_RUN_NUMBER
     secrets:
