@@ -1,0 +1,95 @@
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - release_keylightbillingpage
+ 
+name: Build release_keylightbillingpage branch image
+
+env:
+  REPOSITORY: "ruby-apps-deploy"
+  REPOSITORY_WORKFLOW: "ruby-apps-workflows"
+  AWS_DEFAULT_REGION: "us-west-1"
+  
+jobs:
+  build:
+    runs-on: self-hosted
+ 
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'
+        fetch-depth: 1
+            
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_WORKFLOW}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_WORKFLOW}}
+        path: ${{env.REPOSITORY_WORKFLOW}}
+        ref: 'master'
+        fetch-depth: 1        
+                  
+    - name: (GLOBAL) Configure Service name.
+      run: |
+        echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+   
+   #Comment if it has to be run on a public Agent 
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+    
+    #Uncomment if it has to be run on a public Agent
+    #- name: (GLOBAL) Configure AWS credentials
+      #uses: aws-actions/configure-aws-credentials@v1
+      #with:
+        #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        
+    - name: Set short SHA
+      id: slug
+      run: |
+        echo "IMAGE_TAG=release_keylightbillingpage" >> $GITHUB_ENV
+
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Build, Test, Tag, Push.
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        echo '${{ secrets.PFX_CERT }}' | base64 --decode >> ssl_cert.pfx
+        echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
+        ls -la ruby-apps-workflows/Dockerfile*
+        cp -f ruby-apps-workflows/Dockerfile-${EKS_SERVICE} Dockerfile        
+        echo "Building Docker Image"
+        echo "===================================="
+        docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG --build-arg EKS_SERVICE=${EKS_SERVICE} .
+        echo "===================================="
+        echo "Pushing Docker Image"
+        echo "===================================="
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG
+         
+    - name: Checkout code
+      uses: actions/checkout@v2
