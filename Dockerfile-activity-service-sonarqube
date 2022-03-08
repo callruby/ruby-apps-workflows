@@ -1,31 +1,18 @@
 FROM mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
 ENV APP Ruby.Microservices.Activity
-ENV PATH="$PATH:/root/.dotnet/tools"
-
-ARG SONAR_PROJECT_KEY=activity-service
-ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
-ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y openjdk-8-jre && \
-    dotnet tool install --global dotnet-sonarscanner
 COPY . ./
-RUN dotnet nuget locals --clear all && \
-    cd ${APP} && \
-    dotnet sonarscanner begin \
-    /k:"$SONAR_PROJECT_KEY" \
-    /d:sonar.host.url="$SONAR_HOST_URL" \
-    /d:sonar.login="$SONAR_TOKEN"
+RUN dotnet nuget locals --clear all
 
 RUN dotnet restore ./Activity.sln && \
-    cd ${APP}.UnitTests && \
+    cd ${APP} && \
+    dotnet build ${APP}.csproj && \
+    cd ../${APP}.UnitTests && \
     dotnet test && \
     cd ../${APP} && \    
     dotnet publish -c Release -o /app/${APP}/out/ && \
-    cp -fr $HOME/.nuget /app/${APP}/out/ && \
-    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
-    #cd ${APP} \
-    dotnet build ${APP}.csproj
+    cp -fr $HOME/.nuget /app/${APP}/out/
 #----------------------------------------------------------------
 
 FROM mcr.microsoft.com/dotnet/core/runtime:2.1
