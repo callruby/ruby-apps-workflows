@@ -6,7 +6,7 @@ Why ?
 
 Because we need to have the control and facility to update the Dockerfile and workflows at demand
 
-Differences with the application repository Dockerfiles
+### Differences with the application repository Dockerfiles
 
 ```
 We dont want to interrupt Development work
@@ -18,6 +18,18 @@ Currently we have Sonarqube on the Dockerfile's  and also we have the build,unit
 the dockerfile are written in way to be run on the root path of the repository
 
 Some of Dockerfile needs secrets or certificates in order to be used
+```
+
+#### Dockerfile Sonarqube Url change
+
+```
+#This is a internal Sonarqube URL only accessible from inside the kubernetes cluster
+
+ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
+
+#if you want to use one of these Dockerfile locally you must change it to
+
+ARG SONAR_HOST_URL=http://sonarqube.devops.ruby.com:9000
 ```
 
 PAT ( Personal Access Token is needed ) github variables has to be set for Github Actions.
@@ -116,7 +128,6 @@ That's the place to select the workflow files that has to be synced
 
 
 
-## For updating the Dockerfile or confd/start.sh files for each service, the deployment has to be made manually from Actions.
+## For updating the pipeline files for each service, the deployment has to be made manually from Actions.
 
 Be Aware of this .
-
