@@ -23,9 +23,8 @@ RUN dotnet restore ./Activity.sln && \
     cd ../${APP} && \    
     dotnet publish -c Release -o /app/${APP}/out/ && \
     cp -fr $HOME/.nuget /app/${APP}/out/ && \
-    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
-    #cd ${APP} \
-    dotnet build ${APP}.csproj
+    dotnet build ${APP}.csproj && \
+    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
 #----------------------------------------------------------------
 
 FROM mcr.microsoft.com/dotnet/core/runtime:2.1
