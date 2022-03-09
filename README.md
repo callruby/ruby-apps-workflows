@@ -1,10 +1,8 @@
-# Workflows
+# Workflows & Dockerfiles and scripts of all services are located.
 
-Where the workflows & Dockerfile and start.sh files of all services are.
+### Why ?
 
-Why ?
-
-Because we need to have the control and facility to update the Dockerfile and workflows at demand
+    Because we need to have the control and facility to update the Dockerfile and workflows at demand
 
 ### Differences with the application repository Dockerfiles
 
