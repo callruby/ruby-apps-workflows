@@ -21,6 +21,7 @@ COPY . ./
 #RUN consul agent -bind=0.0.0.0 -data-dir /var/consul -dev & #-config-dir=. 
 RUN dotnet nuget locals --clear all && \
     sleep 30 && \
+    cd ${APP} && \
     dotnet sonarscanner begin \
     /k:"$SONAR_PROJECT_KEY" \
     /d:sonar.host.url="$SONAR_HOST_URL" \
