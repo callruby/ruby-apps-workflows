@@ -17,6 +17,8 @@ Currently we have Sonarqube on the Dockerfile's  and also we have the build,unit
 the dockerfile are written in way to be run on the root path of the repository
 
 Some of Dockerfile needs secrets or certificates in order to be used
+
+These Dockerfiles uses Sonarqube , that require some network connectivity ( For ex. The vpn has to be always on )
 ```
 
 #### Dockerfile Sonarqube Url change
