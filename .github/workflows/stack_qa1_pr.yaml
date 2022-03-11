@@ -1,0 +1,144 @@
+name: 'Terraform PR - Check Qa1 Cost'
+
+on: [pull_request]        
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    #container:
+      #image: ubuntu:latest
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        #run: echo "jo"
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  terraform:
+    name: 'Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+      
+    - name: (GLOBAL) Check out blueprint-aws-rds repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/blueprint-aws-rds
+        path: blueprint-aws-rds
+        ref: 'master'
+        
+    - name: (GLOBAL) Check out blueprint-aws-elasticache repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/blueprint-aws-elasticache
+        path: blueprint-aws-elasticache
+        ref: 'main'
+       
+    - name: (GLOBAL) Check out blueprint-aws-mq-broker repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/blueprint-aws-mq-broker
+        path: blueprint-aws-mq-broker
+        ref: 'main'
+
+    - name: (GLOBAL) Check out blueprint-aws-notify-slack repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/blueprint-aws-notify-slack
+        path: blueprint-aws-notify-slack
+        ref: 'main'
+        
+    - name: Sed
+      run: |
+        ls -la 
+        ls -la envs/
+        sed -i -e 's,github.com/callruby,.,g' envs/main.tf
+        sed -i -e 's,github.com/callruby,..,g' blueprint-aws-rds/main.tf
+        cat envs/main.tf
+        cp -fr blueprint-aws-*/ envs/        
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        terraform_version: 0.13.5        
+
+    - name: Configure the Master AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    - name: Setup main file
+      id: setup
+      run: |
+        ID=793117784422
+        ENVIRONMENT="qa1"
+        echo "ID=${ID}" >> $GITHUB_ENV
+        echo "ENVIRONMENT=${ENVIRONMENT}" >> $GITHUB_ENV
+        
+    - name: Terraform fmt
+      id: fmt
+      run: |
+        cd envs
+        terraform fmt -check
+      continue-on-error: true
+
+    - name: Terraform Init
+      id: init
+      run: |
+        pwd
+        cd envs
+        terraform init
+
+    - name: .terraform permissions
+      run: |
+        ls -la
+        pwd
+        cd envs
+        sudo chown -R runner:runner .terraform
+        
+    - name: Terraform Validate
+      id: validate
+      run: |
+        pwd
+        cd envs      
+        terraform validate -no-color
+
+    - name: Setup Infracost
+      uses: infracost/actions/setup@v1
+      with:
+        api-key: ${{ secrets.INFRACOST_API_KEY }}
+          
+    - name: Terraform Plan
+      id: plan
+      run: |
+        pwd
+        cd envs      
+        terraform plan -var-file=${ENVIRONMENT}/${ENVIRONMENT}.tfvars -input=false -refresh=true -out tfplan.binary
+        terraform show -json tfplan.binary > plan.json
+        infracost breakdown --path=plan.json --format=json --out-file=/tmp/infracost.json
+        
+    - name: Post the comment
+      uses: infracost/actions/comment@v1
+      with:
+        path: /tmp/infracost.json
+        behavior: update # Create a single comment and update it. See https://github.com/infracost/actions/tree/master/comment for other options
