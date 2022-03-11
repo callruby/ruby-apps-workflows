@@ -3,6 +3,7 @@
 ### Why ?
 
     Because we need to have the control and facility to update the Dockerfile and workflows at demand
+    These Dockerfile are used on the Github Action pipeline's
 
 ### Differences with the application repository Dockerfiles
 
