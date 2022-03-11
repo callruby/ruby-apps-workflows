@@ -32,6 +32,9 @@ ARG SONAR_HOST_URL=http://sonarqube.devops.ruby.com:9000
 
 PAT ( Personal Access Token is needed ) github variables has to be set for Github Actions.
 
+# IMPORTANT
+## EVERY TIME THAT A NEW WORKFLOW FILE IS ADDED/MODIFIED ON A REPOSITORY MUST BE ADDED HERE TOO
+
 
 #### For Ci/Cd application deployment ( pipeline definition )
 
