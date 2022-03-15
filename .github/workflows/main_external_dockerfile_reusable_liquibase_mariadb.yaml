@@ -89,7 +89,7 @@ jobs:
             DB=test
           fi
           echo "Database: $DB"
-          sudo /usr/local/bin/liquibase --changeLogFile=$xmlfile --url=jdbc:mariadb://127.0.0.1:${{ job.services.mariadb.ports[3306] }}/$DB?autoReconnect=true"&"useSSL=false --username=root --password=root --logLevel=INFO update  
+          sudo /usr/local/bin/liquibase --changeLogFile=$xmlfile --url=jdbc:mariadb://127.0.0.1:${{ job.services.mariadb.ports[3306] }}/$DB?createDatabaseIfNotExist=true"&"autoReconnect=true"&"useSSL=false --username=root --password=root --logLevel=INFO update  
         done        
 
   build:
