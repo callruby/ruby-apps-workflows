@@ -82,6 +82,9 @@ jobs:
     - name: Execute Liquibase
       run: |
         ls -la changelog
+        if [[ -f "changelog.xml" ]]; then
+          sudo /usr/local/bin/liquibase --changeLogFile=changelog.xml --url=jdbc:mariadb://127.0.0.1:${{ job.services.mariadb.ports[3306] }}/$DB?createDatabaseIfNotExist=true"&"autoReconnect=true"&"useSSL=false --username=root --password=root --logLevel=INFO update
+        fi        
         cd changelog
         find -type f -name "*.xml" | while IFS= read -r xmlfile; do
           DB=$(echo $xmlfile | sed -e 's,.*/,,g' | sed 's,changelog.xml,,' | tr -d _)
