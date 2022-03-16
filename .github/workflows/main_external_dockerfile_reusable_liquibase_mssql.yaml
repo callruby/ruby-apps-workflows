@@ -83,6 +83,10 @@ jobs:
       run: |
         ls -la changelog
         cd changelog
+        if [[ -f "changelog.xml" ]]; then
+          sudo /usr/local/bin/liquibase --changeLogFile=changelog.xml --url="jdbc:sqlserver://127.0.0.1:${{ job.services.sqlserver.ports[1433] }};database=$DB" --username=SA --password=yourStrongP@ssword --logLevel=INFO update
+        fi
+        rm -f changelog.xml
         find -type f -name "*.xml" | while IFS= read -r xmlfile; do
           DB=$(echo $xmlfile | sed -e 's,.*/,,g' | sed 's,changelog.xml,,' | tr -d _)
           if [[ -z "$DB" ]]; then
