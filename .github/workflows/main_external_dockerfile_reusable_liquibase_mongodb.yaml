@@ -32,25 +32,24 @@ name: Create Tag & Release After Dev Deploy - MONGODB LIQUIBASE
 env:
   REPOSITORY_WORKFLOW: "ruby-apps-workflows"
   AWS_DEFAULT_REGION: "us-west-1"
-jobs:
+jobs:  
   liquibase:
     runs-on: self-hosted
+    #runs-on: ubuntu-latest
     services:
-      sqlserver:
-        image: mcr.microsoft.com/mssql/server:2019-CU15-ubuntu-20.04 #mcr.microsoft.com/mssql/server:2019-latest
-        ports:
-          - 1433/tcp
+      mongo:
+        image: mongo:4.4
         env:
-          MSSQL_PID: Standard
-          ACCEPT_EULA: Y
-          SA_PASSWORD: yourStrongP@ssword
-          DB_NAME: test
-        options: >-
-            --health-cmd "/opt/mssql-tools/bin/sqlcmd -U SA -P $SA_PASSWORD -Q 'select 1' -b -o /dev/null"
-            --health-interval 60s
-            --health-timeout 30s
-            --health-start-period 20s
-            --health-retries 3            
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: root
+          MONGO_INITDB_DATABASE: mongodb
+          options: >-
+            --health-cmd mongo
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5          
+        ports:
+          - 27017:27017  
     
     steps:
     - uses: actions/checkout@v2.0.0
@@ -62,38 +61,44 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: Wait for MsSql and Install Liquibase
+    - name: Wait for MongoDB and Install Liquibase
       run: |
         sudo apt update
-        LIQUIBASE_VERSION=3.5.3
+        LIQUIBASE_VERSION=4.5.0 
         LIQUIBASE_PREFIX=/usr/local/lib
         LIQUIBASE_BIN=/usr/local/bin
-        JDBC_MSSQL_VERSION=8.2.0
-        sudo apt install -y default-jre
+        LB_MONGO_VERSION=4.5.0
+        MDB_JAVA_DRIVER_VERSION=4.3.2        
+        sudo apt install -y default-jre wget
         sudo rm -rf ${LIQUIBASE_PREFIX}/liquibase
         sudo rm -f ${LIQUIBASE_BIN}/liquibase
         sudo mkdir -p ${LIQUIBASE_PREFIX}/liquibase
-        sudo curl -o /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -sSL https://github.com/liquibase/liquibase/releases/download/liquibase-parent-${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}-bin.tar.gz
+        sudo curl -o /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -sSL https://github.com/liquibase/liquibase/releases/download/v${LIQUIBASE_VERSION}/liquibase-${LIQUIBASE_VERSION}.tar.gz
         sudo tar -zxf /tmp/liquibase-${LIQUIBASE_VERSION}.tar.gz -C ${LIQUIBASE_PREFIX}/liquibase
         #sed -i "s|bash$|ash|" ${LIQUIBASE_PREFIX}/liquibase/liquibase
         sudo chmod +x ${LIQUIBASE_PREFIX}/liquibase/liquibase
         sudo ln -s ${LIQUIBASE_PREFIX}/liquibase/liquibase ${LIQUIBASE_BIN}
-        sudo curl -o ${LIQUIBASE_PREFIX}/liquibase/lib/mariadb-${JDBC_MYSQL_VERSION}.jar -sSL https://github.com/microsoft/mssql-jdbc/releases/download/v${JDBC_MSSQL_VERSION}/mssql-jdbc-${JDBC_MSSQL_VERSION}.jre11.jar        
+                
+        sudo wget -O ${LIQUIBASE_PREFIX}/liquibase/lib/mongodb.jar https://github.com/liquibase/liquibase-mongodb/releases/download/liquibase-mongodb-${LB_MONGO_VERSION}/liquibase-mongodb-${LB_MONGO_VERSION}.jar
+        sudo curl -o ${LIQUIBASE_PREFIX}/liquibase/lib/bson-${MDB_JAVA_DRIVER_VERSION}.jar https://repo1.maven.org/maven2/org/mongodb/bson/${MDB_JAVA_DRIVER_VERSION}/bson-${MDB_JAVA_DRIVER_VERSION}.jar
+        sudo curl -o ${LIQUIBASE_PREFIX}/liquibase/lib/mongodb-driver-core-${MDB_JAVA_DRIVER_VERSION}.jar https://repo1.maven.org/maven2/org/mongodb/mongodb-driver-core/${MDB_JAVA_DRIVER_VERSION}/mongodb-driver-core-${MDB_JAVA_DRIVER_VERSION}.jar
+        sudo curl -o ${LIQUIBASE_PREFIX}/liquibase/lib/mongodb-driver-sync-${MDB_JAVA_DRIVER_VERSION}.jar https://repo1.maven.org/maven2/org/mongodb/mongodb-driver-sync/${MDB_JAVA_DRIVER_VERSION}/mongodb-driver-sync-${MDB_JAVA_DRIVER_VERSION}.jar
+        sudo chown -R 777 ${LIQUIBASE_PREFIX}/liquibase
+        ls -la ${LIQUIBASE_PREFIX}/liquibase/lib
+        
     - name: Execute Liquibase
-      run: |
-        ls -la changelog
-        cd changelog
+      run: |     
         if [[ -f "changelog.xml" ]]; then
-          sudo /usr/local/bin/liquibase --changeLogFile=changelog.xml --url="jdbc:sqlserver://127.0.0.1:${{ job.services.sqlserver.ports[1433] }};database=$DB" --username=SA --password=yourStrongP@ssword --logLevel=INFO update
-        fi
-        rm -f changelog.xml
+          sudo /usr/local/bin/liquibase --changeLogFile=changelog.xml --url=mongodb://127.0.0.1:${{ job.services.mongo.ports[27017] }}/$DB?createDatabaseIfNotExist=true"&"authSource=admin --username=root --password=root --logLevel=INFO update
+        fi        
+        cd changelog
         find -type f -name "*.xml" | while IFS= read -r xmlfile; do
-          DB=$(echo $xmlfile | sed -e 's,.*/,,g' | sed 's,changelog.xml,,' | tr -d _)
+          DB=$(echo $xmlfile | sed -e 's,.*/,,g' | sed 's,changelog.xml,,' | tr -d _ | sed -e 's,.xml,,g')
           if [[ -z "$DB" ]]; then
-            DB=tempdb
+            DB=mongodb
           fi
           echo "Database: $DB"
-          sudo /usr/local/bin/liquibase --changeLogFile=$xmlfile --url="jdbc:sqlserver://127.0.0.1:${{ job.services.sqlserver.ports[1433] }};database=$DB" --username=SA --password=yourStrongP@ssword --logLevel=INFO update  
+          sudo /usr/local/bin/liquibase --changeLogFile=$xmlfile --url=mongodb://127.0.0.1:${{ job.services.mongo.ports[27017] }}/$DB?createDatabaseIfNotExist=true"&"authSource=admin --username=root --password=root --logLevel=INFO update  
         done  
            
   build:
