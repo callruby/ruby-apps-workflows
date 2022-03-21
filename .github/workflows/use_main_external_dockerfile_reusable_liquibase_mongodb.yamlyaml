@@ -1,0 +1,23 @@
+name: Use reusable docker external liquibase build pipeline MongoDB
+
+on:
+  push:
+    branches:
+      - release
+jobs:
+  docker:
+    uses: callruby/ruby-apps-workflows/.github/workflows/main_external_dockerfile_reusable_liquibase_mongodb.yaml@master
+    with:
+      tag: $GITHUB_RUN_NUMBER
+    secrets:
+      PAT: ${{secrets.PAT}}
+      GPG_PRIVATE_KEY: ${{secrets.GPG_PRIVATE_KEY}}
+      GPG_PASSPHRASE: ${{secrets.GPG_PASSPHRASE}}
+      EKS_SERVICE: ${{secrets.EKS_SERVICE}}
+      AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+      PFX_CERT: ${{secrets.PFX_CERT}}
+      SSL_PEM_CERT: ${{secrets.SSL_PEM_CERT}}
+      SSL_PEM_KEY: ${{secrets.SSL_PEM_KEY}}
+      NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
+      SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}} 
+      SLACK_BOT_CHANNEL: ${{secrets.SLACK_BOT_CHANNEL}}
