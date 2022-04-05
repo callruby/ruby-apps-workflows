@@ -1,4 +1,4 @@
-name: 'Terraform Destroy'
+name: 'Terraform Destroy Remote'
 
 on:
   workflow_dispatch:
@@ -7,7 +7,10 @@ on:
         description: 'Password to trigger the terraform apply'
         required: true
         default: ''
-        
+
+env:
+  REPOSITORY: "stack-aws-eks"
+
 jobs:
   cleanup:
     runs-on: self-hosted
@@ -38,6 +41,14 @@ jobs:
             
     - name: Checkout
       uses: actions/checkout@v2
+      
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'      
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
@@ -55,7 +66,8 @@ jobs:
     - name: Terraform fmt
       id: fmt
       run: |
-        cd aws
+        cp -f aws/variables.tf stack-aws-eks/blueprint-local-env/variables.tf
+        cd stack-aws-eks/blueprint-local-env
         terraform fmt -check
       continue-on-error: true
 
@@ -63,28 +75,28 @@ jobs:
       id: init
       run: |
         pwd
-        cd aws
+        cd stack-aws-eks/blueprint-local-env
         terraform init
 
     - name: .terraform permissions
       run: |
         ls -la
         pwd
-        cd aws
+        cd stack-aws-eks/blueprint-local-env
         sudo chown -R runner:runner .terraform
         
     - name: Terraform Validate
       id: validate
       run: |
         pwd
-        cd aws      
+        cd stack-aws-eks/blueprint-local-env      
         terraform validate -no-color
         
     - name: Terraform Plan
       id: plan
       run: |
         pwd
-        cd aws      
+        cd stack-aws-eks/blueprint-local-env      
         terraform plan -input=false -refresh=true -out tfplan.binary
         terraform show -json tfplan.binary > plan.json
       continue-on-error: false
@@ -108,6 +120,6 @@ jobs:
       id: destroy
       run: |
         pwd
-        cd aws      
+        cd stack-aws-eks/blueprint-local-env      
         terraform destroy -input=false -refresh=true -auto-approve
       continue-on-error: false
