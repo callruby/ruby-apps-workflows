@@ -1,4 +1,4 @@
-name: 'Terraform Apply'
+name: 'Terraform Apply remote'
 
 on:
   workflow_dispatch:
@@ -15,6 +15,9 @@ on:
         description: 'Github user token used for the cluster to clone/read repositories'
         required: true
         default: ''        
+
+env:
+  REPOSITORY: "stack-aws-eks"
 
 jobs:
   cleanup:
@@ -46,6 +49,14 @@ jobs:
             
     - name: Checkout
       uses: actions/checkout@v2
+      
+    - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY}}
+        path: ${{env.REPOSITORY}}
+        ref: 'master'      
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v1
@@ -63,7 +74,8 @@ jobs:
     - name: Terraform fmt
       id: fmt
       run: |
-        cd aws
+        cp -f aws/variables.tf stack-aws-eks/blueprint-local-env/variables.tf
+        cd stack-aws-eks/blueprint-local-env
         terraform fmt -check
       continue-on-error: true
 
@@ -71,21 +83,21 @@ jobs:
       id: init
       run: |
         pwd
-        cd aws
+        cd stack-aws-eks/blueprint-local-env
         terraform init
 
     - name: .terraform permissions
       run: |
         ls -la
         pwd
-        cd aws
+        cd stack-aws-eks/blueprint-local-env
         sudo chown -R runner:runner .terraform
         
     - name: Terraform Validate
       id: validate
       run: |
         pwd
-        cd aws      
+        cd stack-aws-eks/blueprint-local-env      
         terraform validate -no-color
         echo "TF_VAR_github_user=$(echo ${{github.event.inputs.Github_user}})" >> $GITHUB_ENV
         echo "TF_VAR_github_token=$(echo ${{github.event.inputs.Github_token}})" >> $GITHUB_ENV
@@ -99,11 +111,14 @@ jobs:
       id: plan
       run: |
         pwd
+        cp -fr config stack-aws-eks/blueprint-local-env/config
+        cp -fr consul stack-aws-eks/blueprint-local-env/consul
+        chmod -R 777 .
         mkdir -p $HOME/.ssh
         echo ${{ secrets.SSH_KEY }} >> $HOME/.ssh/id_rsa.pub
         chmod 600 $HOME/.ssh/id_rsa.pub
         cat $HOME/.ssh/id_rsa.pub
-        cd aws      
+        cd stack-aws-eks/blueprint-local-env      
         terraform plan -input=false -refresh=true -out tfplan.binary
         terraform show -json tfplan.binary > plan.json
         infracost breakdown --path=plan.json --format=table --out-file=/tmp/infracost.json
@@ -129,7 +144,7 @@ jobs:
       id: apply
       run: |
         pwd
-        cd aws
+        cd stack-aws-eks/blueprint-local-env
         TF_VAR_github_user=$(echo ${{github.event.inputs.Github_user}})
         TF_VAR_github_token=$(echo ${{github.event.inputs.Github_token}})        
         terraform apply -input=false -refresh=true -auto-approve
@@ -144,5 +159,5 @@ jobs:
       with:
         name: argocd_password
         path: |
-          aws/*-ARGOCD_PASSWORD
+          stack-aws-eks/blueprint-local-env/*-ARGOCD_PASSWORD
         if-no-files-found: ignore
