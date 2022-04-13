@@ -1,0 +1,116 @@
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - feature_spoofing/**
+      - feature_spoofing/*
+ 
+name: Spoofing - Create Tag & Release After Dev Deploy
+
+env:
+  REPOSITORY_WORKFLOW: "ruby-apps-workflows"
+  AWS_DEFAULT_REGION: "us-west-1"
+jobs:
+  build:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+    if: ${{ ! contains('refs/heads/feature_spoofing/release', github.ref) && ! contains('refs/heads/feature_spoofing/production', github.ref) }}
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+      #Enforce branch policy
+    - uses: deepakputhraya/action-branch-name@master
+      with:
+        regex: '([a-z])+\/([a-zA-Z0-9_.-])+' # Regex the branch should match. This example enforces grouping
+        allowed_prefixes: 'feature_spoofing,stable,fix,hotfix' # All branches should start with the given prefix
+        ignore: master,develop,dev,release,feature,main # Ignore exactly matching branch names from convention
+        min_length: 5 # Min length of the branch name
+        max_length: 100 # Max length of the branch name        
+                      
+    - name: (GLOBAL) Check out ${{env.REPOSITORY_WORKFLOW}} repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/${{env.REPOSITORY_WORKFLOW}}
+        path: ${{env.REPOSITORY_WORKFLOW}}
+        ref: 'master'
+        fetch-depth: 1                  
+                  
+    - name: (GLOBAL) Configure Service name.
+      run: |
+        echo "EKS_SERVICE=spoofing" >> $GITHUB_ENV
+        #echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+   
+   #Comment if it has to be run on a public Agent 
+    - name: (GLOBAL) Configure AWS credentials using the secrets obtained from Vault
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+    
+    #Uncomment if it has to be run on a public Agent
+    #- name: (GLOBAL) Configure AWS credentials
+      #uses: aws-actions/configure-aws-credentials@v1
+      #with:
+        #aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        #aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        #aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+        
+    - name: Set short SHA
+      id: slug
+      run: |
+        echo "IMAGE_TAG=$(echo ${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}} | sed 's,feature_spoofing/,,g')" >> $GITHUB_ENV
+        echo ${GITHUB_REF}
+        echo ${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1      
+        
+    - name: (DEV) Build, Test, Tag, Push.
+      id: Deploy
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "ECR_REPOSITORY: ${EKS_SERVICE}"
+        echo "IMAGE_TAG: $IMAGE_TAG"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        ls -la ruby-apps-workflows/Dockerfile*
+        cp -f ruby-apps-workflows/Dockerfile-${EKS_SERVICE}-service-sonarqube Dockerfile
+        echo '${{ secrets.PFX_CERT }}' | base64 --decode >> ssl_cert.pfx
+        echo '${{ secrets.SSL_PEM_CERT }}' | base64 --decode >> ssl_cert.pem
+        echo '${{ secrets.SSL_PEM_KEY }}' | base64 --decode >> ssl_key.pem
+        echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
+        echo "Building Docker Image"
+        #cp -fr Microservices/Ruby.Microservices.Spoofing.RabbitMQ.Tests Microservices/Spoofing/Ruby.Microservices.Spoofing.RabbitMQ.Tests
+        #cp -fr Microservices/Models Microservices/Spoofing/Models
+        #cp -fr Microservices/Common Microservices/Spoofing/Common
+        #cp -fr CoreApps Microservices/Spoofing/CoreApps
+        #sed -i -e 's,\..\Ruby.Microservices.Spoofing.RabbitMQ.Tests,"Ruby.Microservices.Spoofing.RabbitMQ.Tests,g' Microservices/Spoofing/Ruby.Microservices.Spoofing.RabbitMQ.sln
+        #sed -i -e 's,\.",,g' Microservices/Spoofing/Ruby.Microservices.Spoofing.RabbitMQ.sln
+        #cat Microservices/Spoofing/Ruby.Microservices.Spoofing.RabbitMQ.sln
+        echo "===================================="
+        docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG --build-arg EKS_SERVICE=${EKS_SERVICE} . #Microservices/Spoofing
+        echo "===================================="
+        echo "Pushing Docker Image"
+        echo "===================================="
+        docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG
+        #echo "::set-env name=IMAGE::${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$IMAGE_TAG"
+        
+    - name: (GLOBAL) Check out ruby-apps-deploy repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/ruby-apps-deploy
+        path: ruby-apps-deploy
+        ref: 'master'
+        
+    - name: Checkout code
+      uses: actions/checkout@v2
