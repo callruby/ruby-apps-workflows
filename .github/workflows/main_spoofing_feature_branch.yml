@@ -2,8 +2,8 @@ on:
   workflow_dispatch:
   push:
     branches: 
-      - feature_spoofing/**
-      - feature_spoofing/*
+      - feature/**
+      - feature/*
  
 name: Spoofing - Create Tag & Release After Dev Deploy
 
@@ -29,7 +29,7 @@ jobs:
     - uses: deepakputhraya/action-branch-name@master
       with:
         regex: '([a-z])+\/([a-zA-Z0-9_.-])+' # Regex the branch should match. This example enforces grouping
-        allowed_prefixes: 'feature_spoofing,stable,fix,hotfix' # All branches should start with the given prefix
+        allowed_prefixes: 'feature,stable,fix,hotfix' # All branches should start with the given prefix
         ignore: master,develop,dev,release,feature,main # Ignore exactly matching branch names from convention
         min_length: 5 # Min length of the branch name
         max_length: 100 # Max length of the branch name        
@@ -65,7 +65,7 @@ jobs:
     - name: Set short SHA
       id: slug
       run: |
-        echo "IMAGE_TAG=$(echo ${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}} | sed 's,feature_spoofing/,,g')" >> $GITHUB_ENV
+        echo "IMAGE_TAG=$(echo ${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}} | sed 's,feature/,,g')" >> $GITHUB_ENV
         echo ${GITHUB_REF}
         echo ${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
 
