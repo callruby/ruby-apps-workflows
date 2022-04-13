@@ -3,10 +3,11 @@ ENV APP Ruby.Microservices.Spoofing.RabbitMQ
 WORKDIR /app
 
 COPY . ./
-RUN dotnet nuget locals --clear all && \
-    cp -fr Common ../Common && \
-    cp -fr Models ../Models && \
-    cp -fr CoreApps ../CoreApps
+RUN dotnet nuget locals --clear all 
+    #&& \
+    #cp -fr Common ../Common && \
+    #cp -fr Models ../Models && \
+    #cp -fr CoreApps ../CoreApps
     
 RUN dotnet restore ./Ruby.Microservices.Spoofing.RabbitMQ.sln && \
     cd ${APP} && \
