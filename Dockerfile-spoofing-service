@@ -13,11 +13,12 @@ RUN apt-get update && apt-get install -y openjdk-8-jre && \
 
 COPY . ./
 RUN dotnet nuget locals --clear all && \
-    cp -fr Common ../Common && \
-    cp -fr Models ../Models && \
-    cp -fr CoreApps ../CoreApps && \
     cd ${APP} && \
     dotnet sonarscanner begin /k:"$SONAR_PROJECT_KEY" /d:sonar.host.url="$SONAR_HOST_URL" /d:sonar.login="$SONAR_TOKEN"
+
+    #cp -fr Common ../Common && \
+    #cp -fr Models ../Models && \
+    #cp -fr CoreApps ../CoreApps && \    
     
 RUN dotnet restore ./Ruby.Microservices.Spoofing.RabbitMQ.sln && \
     cd ${APP} && \
