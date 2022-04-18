@@ -19,6 +19,8 @@ the dockerfile are written in way to be run on the root path of the repository
 Some of Dockerfile needs secrets or certificates in order to be used
 
 These Dockerfiles uses Sonarqube , that require some network connectivity ( For ex. The vpn has to be always on )
+
+Usually you have a Dockerfile for the CI/CD and other named for example Dockerfile.dev for the local development.
 ```
 
 #### Dockerfile Sonarqube Url change
