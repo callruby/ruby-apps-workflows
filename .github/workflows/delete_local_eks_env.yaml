@@ -1,0 +1,49 @@
+name: Delete a local environment on EKS
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'Local environment username as on the yaml files'
+        required: true
+        default: ''  
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'
+      
+    - name: Execute Kubectl delete app
+      run: |
+        echo "================================================="
+        echo "Listing all local environment"
+        echo "================================================="
+        kubectl get application -n argocd | grep local | awk '{print $1}'
+        echo "================================================="
+        echo "Deleting user local environment"
+        echo "================================================="
+        kubectl delete application ${{github.event.inputs.username}}-environment-local -n argocd
+        kubectl delete application ${{github.event.inputs.username}}-apps-local -n argocd
+        
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      if: always()
+      with:
+        channel-id: C036Z0AJPB4
+        slack-message: "Eks local environment ${{github.event.inputs.username}} was removed - Status: ${{ job.status }}\n"        
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+              
+    - name: Checkout code
+      uses: actions/checkout@v2
