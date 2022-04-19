@@ -6,7 +6,7 @@ jobs:
   build:
     env:
         KUBECONFIG: '${{ github.workspace }}/.kube/gh-kubeconfig'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted #ubuntu-latest
     steps:
     - uses: actions/checkout@v2
 
