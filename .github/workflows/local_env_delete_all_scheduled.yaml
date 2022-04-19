@@ -1,0 +1,42 @@
+name: Delete all local environment on EKS ( SCHEDULED )
+#on:
+  #workflow_dispatch:
+
+on:
+  schedule:
+  - cron: '0 0 * * 6'
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'
+      
+    - name: Execute Kubectl delete
+      run: |
+        rm -rf .github/workflows
+        find developer -type f -name "*.yaml" | while IFS= read -r yamlfile; do 
+        if [[ $(cat $yamlfile | grep "https://github.com/callruby/ruby-apps-charts.git") ]] && [[ $( cat $yamlfile | grep "eks_ruby-eks-dev-7M2GCKM6") ]]; then
+          directory=$(dirname $yamlfile)
+          directory=$(basename $directory )
+          if [[ $(cat $yamlfile | grep $directory) ]] && [[ $(cat $yamlfile | grep "namespace: $directory-apps") ]]; then
+            echo "Deleting $directory environment"
+            kubectl delete application ${directory}-environment-local -n argocd --ignore-not-found=true #>> /dev/null 2>&1
+            kubectl delete application ${directory}-apps-local -n argocd --ignore-not-found=true #>> /dev/null 2>&1
+          fi  
+        fi  
+        done
+        
+    - name: Checkout code
+      uses: actions/checkout@v2
