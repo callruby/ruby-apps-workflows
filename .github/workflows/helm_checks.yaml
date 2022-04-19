@@ -2,7 +2,7 @@ on: workflow_dispatch
 name: Helm Charts linter
 jobs:
   helm-check:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted #ubuntu-latest
     steps:
     - uses: actions/checkout@master
     - name: helm-check-apps
