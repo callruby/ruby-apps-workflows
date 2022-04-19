@@ -1,0 +1,59 @@
+name: Create local environment on EKS ( Manually selected )
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: 'Local environment username as on the yaml files'
+        required: true
+        default: ''
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2.0.0
+        
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - uses: azure/setup-kubectl@v1
+      with:
+        version: 'v1.15.0'
+      
+    - name: Execute Kubectl apply
+      run: |
+        rm -rf .github/workflows
+        find developer/${{github.event.inputs.username}} -type f -name "*.yaml" | while IFS= read -r yamlfile; do 
+        if [[ $(cat $yamlfile | grep "https://github.com/callruby/ruby-apps-charts.git") ]] && [[ $( cat $yamlfile | grep "eks_ruby-eks-dev-7M2GCKM6") ]]; then
+          directory=$(dirname $yamlfile)
+          directory=$(basename $directory )
+          if [[ $(cat $yamlfile | grep $directory) ]] && [[ $(cat $yamlfile | grep "namespace: $directory-apps") ]]; then
+            kubectl create -f $yamlfile -o yaml --dry-run=true | kubectl apply -f -
+          else
+            if [[ "$directory" == "consul" ]]; then
+              kubectl create -f $yamlfile -o yaml --dry-run=true | kubectl apply -f -
+            else 
+              echo "========================================================================"
+              echo "Invalid YAML"
+              echo "The directoy name is not used on the yaml file $yamlfile"
+              echo "The namespace should be $directory-apps                              "
+              echo "========================================================================"
+              exit 1            
+            fi
+          fi
+        else
+          echo "========================================================================"
+          echo "Invalid YAML"
+          echo "Development Cluster has to be used as destination"
+          echo "ruby-apps-charts repository has to be set"
+          echo "========================================================================"
+          exit 1
+        fi
+        done
+        
+    - name: Checkout code
+      uses: actions/checkout@v2
