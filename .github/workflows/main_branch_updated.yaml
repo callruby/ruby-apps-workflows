@@ -1,0 +1,57 @@
+on:
+  push:
+    branches:
+      - main
+      
+name: Main branch updated notifier
+
+jobs:
+  build:
+    #environment: default
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+    steps:
+    - uses: actions/checkout@v2.0.0
+
+    - name: Turnstyle
+      uses: softprops/turnstyle@v1
+      with:
+         continue-after-seconds: 500 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                                                
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      if: always()
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        payload: |
+            {
+              "text": ":github: Main Branch on ${{ github.repository }} was updated",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":github: Main Branch on ${{ github.repository }} was updated\n\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Author: <https://github.com/${{ github.event.sender.login }}|@${{ github.event.sender.login }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "Commit Sha: >${{ github.sha }}>"
+                    }                    
+                  ]
+                }               
+              ]
+            }          
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
