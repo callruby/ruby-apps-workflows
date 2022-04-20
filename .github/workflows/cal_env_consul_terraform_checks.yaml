@@ -1,0 +1,78 @@
+name: 'Consul Terraform Plan'
+
+on:
+  push:
+    branches: 
+      - feature/**
+      - feature/*    
+
+jobs:
+  cleanup:
+    runs-on: self-hosted
+    steps:
+      - name: Create repository folder
+        run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }}
+            
+      - name: Cleaning up the $GITHUB_WORKSPACE as root from a Docker image
+        #run: echo "jo"
+        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
+        
+  terraform:
+    name: 'Terraform'
+    runs-on: self-hosted
+    needs: cleanup
+    defaults:
+      run:
+        shell: bash
+    steps:
+    
+    - name: Create repository folder
+      run: |
+            mkdir -p __w/${{ github.event.repository.name }}/${{ github.event.repository.name }} 
+            
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        terraform_version: 0.14.0      
+        
+    - name: Terraform fmt
+      id: fmt
+      run: |
+        cd consul
+        terraform fmt -check
+      continue-on-error: true
+
+    - name: Terraform Init
+      id: init
+      run: |
+        pwd
+        cd consul
+        terraform init
+
+    - name: .terraform permissions
+      run: |
+        ls -la
+        pwd
+        cd consul
+        sudo chown -R runner:runner .terraform
+        
+    - name: Terraform Validate
+      id: validate
+      run: |
+        pwd
+        cd consul      
+        terraform validate -no-color
+        
+    - name: Terraform Plan
+      id: plan
+      run: |
+        pwd
+        cd consul      
+        terraform plan -input=false -refresh=true -out tfplan.binary
+        terraform show -json tfplan.binary > plan.json
+      continue-on-error: false
