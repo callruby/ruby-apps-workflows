@@ -13,7 +13,7 @@ jobs:
       - name: Simple Task
         run: echo Hello, world!
 
-  #docker:
-    #uses: callruby/ruby-apps-workflows/.github/workflows/clean_old_commits_reusable.yaml@master
-    #secrets:
-      #PAT: ${{secrets.PAT}}    
+  docker:
+    uses: callruby/ruby-apps-workflows/.github/workflows/clean_old_commits_reusable.yaml@master
+    secrets:
+      PAT: ${{secrets.PAT}}    
