@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
+FROM mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
 ENV APP Ruby.Microservices.Partner.MyCase
 ENV PATH="$PATH:/root/.dotnet/tools"
 
@@ -28,7 +28,7 @@ RUN dotnet restore ./Ruby.Microservices.Partner.MyCase.sln && \
     dotnet build ${APP}.csproj    
 #----------------------------------------------------------------
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1
+FROM mcr.microsoft.com/dotnet/core/runtime:2.1
 ENV APP Ruby.Microservices.Partner.MyCase
 ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
 COPY ${APP}/confd /etc/confd
