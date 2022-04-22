@@ -11,7 +11,8 @@ WORKDIR /app
 #    dotnet tool install --global dotnet-sonarscanner
     
 COPY . ./
-RUN dotnet nuget locals --clear all 
+RUN dotnet nuget locals --clear all && \
+    cd ${APP}
 
 #&& \
 #    cd ${APP} && \
