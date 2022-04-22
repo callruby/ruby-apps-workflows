@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
+FROM mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
 ENV APP Ruby.Microservices.Partner.MyCase
 ENV PATH="$PATH:/root/.dotnet/tools"
 
@@ -30,7 +30,7 @@ RUN dotnet restore ./${APP}.sln && \
     cp -fr $HOME/.nuget /app/${APP}/out/
 #----------------------------------------------------------------
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1
+FROM mcr.microsoft.com/dotnet/core/runtime:2.1
 ENV APP Ruby.Microservices.Partner.MyCase
 WORKDIR /app
 
