@@ -13,11 +13,13 @@ WORKDIR /app
     
 COPY . ./
 RUN dotnet nuget locals --clear all && \
-    cd ${APP} && \
-    dotnet sonarscanner begin \
-    /k:"$SONAR_PROJECT_KEY" \
-    /d:sonar.host.url="$SONAR_HOST_URL" \
-    /d:sonar.login="$SONAR_TOKEN"
+    cd ${APP} 
+    
+    #&& \
+    #dotnet sonarscanner begin \
+    #/k:"$SONAR_PROJECT_KEY" \
+    #/d:sonar.host.url="$SONAR_HOST_URL" \
+    #/d:sonar.login="$SONAR_TOKEN"
 
 RUN dotnet restore ./${APP}.sln && \
     cd ${APP} && \
@@ -26,8 +28,9 @@ RUN dotnet restore ./${APP}.sln && \
     dotnet test && \
     cd ../${APP} && \    
     dotnet publish -c Release -o /app/${APP}/out/ && \
-    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \
     cp -fr $HOME/.nuget /app/${APP}/out/
+    
+#    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \    
 #----------------------------------------------------------------
 
 FROM mcr.microsoft.com/dotnet/core/runtime:2.1
