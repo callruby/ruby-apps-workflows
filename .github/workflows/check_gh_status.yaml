@@ -1,0 +1,30 @@
+name: Check Github Runner Status every 30 minutes.
+on:
+  schedule:
+  - cron: '0,30 9-23 * * *'
+  #workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
+    steps:
+                                               
+    - name: Check GH runner status
+      id: check
+      timeout-minutes: 5
+      run: |
+          echo "At least one GH runner pod is running"
+          
+  notify:
+    if: failure() 
+    runs-on: ubuntu-latest
+    steps:                                               
+    - name: Notify only when check job fail          
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        slack-message: "ERROR *** The Github Runner seems that isnt working, please check the status here https://argocd.dev.devops.ruby.com/applications/github-runners *** ERROR\n"        
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
