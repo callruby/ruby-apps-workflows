@@ -67,3 +67,15 @@ See .github/workflows/main_sync_APP_NAME.yml
 ## For updating the pipeline files for each service, the deployment has to be made manually from Actions.
 
 Be Aware of this .
+
+
+
+## Act 
+
+Run your GitHub Actions locally
+
+    https://github.com/nektos/act
+
+How to execute it
+
+    act lintAllTheThings
