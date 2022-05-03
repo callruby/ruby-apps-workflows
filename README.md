@@ -78,4 +78,12 @@ Run your GitHub Actions locally
 
 How to execute it
 
-    act lintAllTheThings
+    act -j helm-check -P self-hosted
+    
+in order to work locally it has to be set 
+
+    runs-on: ubuntu-latest .
+
+and when the file is push
+
+    runs-on: self-hosted
