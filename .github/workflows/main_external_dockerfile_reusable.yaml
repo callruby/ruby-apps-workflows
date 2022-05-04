@@ -98,6 +98,7 @@ jobs:
         
     - name: (DEV) Build, Test, Tag, Push.
       id: Deploy
+      timeout-minutes: 15
       run: |
         echo "===================================="
         echo "DEBUG:"
