@@ -1,7 +1,7 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1-bionic as builder #mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1-bionic as builder
 ENV APP Ruby.Microservices.Partner.MyCase
 ENV PATH="$PATH:/root/.dotnet/tools"
-
+#mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
 ARG SONAR_PROJECT_KEY=mycase-service
 ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
 ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
@@ -32,7 +32,8 @@ RUN dotnet restore ./Ruby.Microservices.Partner.MyCase.sln && \
 #     dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \    
 #----------------------------------------------------------------
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1-bionic #mcr.microsoft.com/dotnet/core/runtime:2.1
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1-bionic 
+#mcr.microsoft.com/dotnet/core/runtime:2.1
 ENV APP Ruby.Microservices.Partner.MyCase
 ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
 COPY ${APP}/confd /etc/confd
