@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1-bionic as builder #mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1-bionic as builder 
+#mcr.microsoft.com/dotnet/core/sdk:2.1 AS builder
 ENV APP Ruby.Microservices.Partner.MyCase
 ENV PATH="$PATH:/root/.dotnet/tools"
 
@@ -33,7 +34,8 @@ RUN dotnet restore ./${APP}.sln && \
 #    dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" && \    
 #----------------------------------------------------------------
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1-bionic #mcr.microsoft.com/dotnet/core/runtime:2.1
+FROM mcr.microsoft.com/dotnet/core/runtime:3.1-bionic 
+#mcr.microsoft.com/dotnet/core/runtime:2.1
 ENV APP Ruby.Microservices.Partner.MyCase
 WORKDIR /app
 
