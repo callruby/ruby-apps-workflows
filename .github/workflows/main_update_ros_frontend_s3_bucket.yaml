@@ -1,4 +1,4 @@
-name: Update App to the Selected Environment.
+name: Update QA S3 bucket.
 
 on:
   workflow_dispatch: #workflow_call:
