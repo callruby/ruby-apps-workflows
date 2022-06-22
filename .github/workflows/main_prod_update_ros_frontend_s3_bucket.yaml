@@ -1,0 +1,65 @@
+name: Update Production S3 bucket.
+
+on:
+  workflow_dispatch: #workflow_call:
+      
+jobs:
+
+  init:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+
+    steps:
+    
+    - name: (GLOBAL) Debug
+      run: |
+        echo "Environment: Prod"
+        echo "Tag: release"
+    
+    - uses: actions/checkout@v2.0.0
+      ref: 'release'
+      
+    - uses: jakejarvis/s3-sync-action@master
+      name: Sync Js files
+      with:
+        args: --exclude "*" --include "*.js" --no-guess-mime-type --content-type "application/javascript; charset=utf-8" --cache-control "public,max-age=31536000"
+      env:
+        AWS_S3_BUCKET: ruby-ros-frontend-prod
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'src'      # optional: defaults to entire repository
+        
+    - uses: jakejarvis/s3-sync-action@master
+      name: Sync Css files
+      with:
+        args: --exclude "*" --include "*.css" --no-guess-mime-type --content-type "text/css; charset=utf-8" --cache-control "public,max-age=31536000"
+      env:
+        AWS_S3_BUCKET: ruby-ros-frontend-prod
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'src'      # optional: defaults to entire repository
+        
+    - uses: jakejarvis/s3-sync-action@master
+      name: Sync All except index
+      with:
+        args: --exclude "*.js" --exclude "*.css" --exclude "*.html"  --cache-control ""
+      env:
+        AWS_S3_BUCKET: ruby-ros-frontend-prod
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'src'      # optional: defaults to entire repository        
+        
+
+    - uses: jakejarvis/s3-sync-action@master
+      name: Sync index
+      with:
+        args: --exclude "*" --include "index.html" --cache-control --cache-control "public,max-age=0"
+      env:
+        AWS_S3_BUCKET: ruby-ros-frontend-prod
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'src'      # optional: defaults to entire repository        
