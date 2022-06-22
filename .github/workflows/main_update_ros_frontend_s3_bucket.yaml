@@ -1,0 +1,82 @@
+name: Update App to the Selected Environment.
+
+on:
+  workflow_dispatch: #workflow_call:
+    inputs:
+      Environment:
+        description: 'Environment to deploy'
+        type: choice
+        required: true
+        options: 
+        - qa1
+        - qa2
+        - qa3
+        - qa4
+        - qa5
+        - qa6
+      Tag:
+        description: 'Commit Tag be deployed Qa1-Qa6'
+        type: string
+        required: true
+        default: ''
+      
+jobs:
+
+  init:
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
+
+    steps:
+    
+    - name: (GLOBAL) Debug
+      run: |
+        echo "Environment: ${{github.event.inputs.Environment}}"
+        echo "Tag: ${{github.event.inputs.Tag}}"
+    
+    - uses: actions/checkout@v2.0.0
+      ref: '${{github.event.inputs.Tag}}'
+      
+    - uses: jakejarvis/s3-sync-action@master
+      name: Sync Js files
+      with:
+        args: --exclude "*" --include "*.js" --no-guess-mime-type --content-type "application/javascript; charset=utf-8" --cache-control "public,max-age=31536000"
+      env:
+        AWS_S3_BUCKET: ruby-ros-frontend-${{github.event.inputs.Environment}}
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'src'      # optional: defaults to entire repository
+        
+    - uses: jakejarvis/s3-sync-action@master
+      name: Sync Css files
+      with:
+        args: --exclude "*" --include "*.css" --no-guess-mime-type --content-type "text/css; charset=utf-8" --cache-control "public,max-age=31536000"
+      env:
+        AWS_S3_BUCKET: ruby-ros-frontend-${{github.event.inputs.Environment}}
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'src'      # optional: defaults to entire repository
+        
+    - uses: jakejarvis/s3-sync-action@master
+      name: Sync All except index
+      with:
+        args: --exclude "*.js" --exclude "*.css" --exclude "*.html"  --cache-control ""
+      env:
+        AWS_S3_BUCKET: ruby-ros-frontend-${{github.event.inputs.Environment}}
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'src'      # optional: defaults to entire repository        
+        
+
+    - uses: jakejarvis/s3-sync-action@master
+      name: Sync index
+      with:
+        args: --exclude "*" --include "index.html" --cache-control --cache-control "public,max-age=0"
+      env:
+        AWS_S3_BUCKET: ruby-ros-frontend-${{github.event.inputs.Environment}}
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+        SOURCE_DIR: 'src'      # optional: defaults to entire repository        
