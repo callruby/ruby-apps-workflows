@@ -32,7 +32,7 @@ jobs:
         #if: ${{ github.event.pull_request.base.sha }}  
         run: |
           mkdir -p yamls
-          rm -rf vault_base consul_base terraform_base
+          rm -rf vault_base consul_base terraform_base ruby-apicurio apicurio_base external_dns_base
           shopt -s dotglob
           find *_base -prune -not -path '*/\.*' -type d | while IFS= read -r d; do 
             if [[ -f "$d/values.yaml" ]]; then
@@ -65,6 +65,7 @@ jobs:
           cd yamls
           kubectl create namespace cicd
           kubectl create namespace qa1-apps
+          kubectl create namespace dev-apps
           kubectl apply --recursive --dry-run -f .
           kubectl apply --recursive -f .
 
