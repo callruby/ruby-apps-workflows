@@ -1,0 +1,21 @@
+name: Update uptime-ghpages repo trigger dispatch
+on:
+  push:
+    branches: 
+      - gh-pages
+      
+jobs:
+  release:
+    name: Trigger Dispatch Ghpages workflow on Up-time repository
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.3
+
+      - name: Sleep till wait for the other pipelines
+        run: |
+          sleep 180
+          
+      - name: Trigger uptime-status ghpage workflow
+        run: |
+          curl --request POST -H \"Accept: application/vnd.github.v3+json\" --url 'https://api.github.com/repos/callruby/uptime-status/dispatches' --header 'authorization: Bearer ${{ secrets.GH_PAT }}' --data '{"event_type": "ghpages_update","client_payload": {}'
