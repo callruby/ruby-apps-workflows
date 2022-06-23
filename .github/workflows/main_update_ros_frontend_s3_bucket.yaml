@@ -5,7 +5,7 @@ on:
   workflow_dispatch: #workflow_call:
     inputs:
       Environment:
-        description: 'Environment to deploy'
+        description: 'Environment to deploy Qa1-Qa6'
         type: choice
         required: true
         options: 
@@ -33,9 +33,27 @@ jobs:
       run: |
         echo "Environment: ${{github.event.inputs.Environment}}"
         echo "Tag: ${{github.event.inputs.Tag}}"
+        case ${{github.event.inputs.Environment}} in
+          1|qa1|Qa1|QA1)
+                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
+          2|qa2|Qa2|QA2)
+                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
+          3|qa3|Qa3|QA3)
+                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
+          4|qa4|Qa4|QA4)
+                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
+          5|qa5|Qa5|QA5)
+                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
+          6|qa6|Qa6|QA6)
+                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;                
+          *)
+                exit 1;;
+        esac
+        echo "DISTRIBUTION=${DISTRIBUTION}" >> $GITHUB_ENV
     
     - uses: actions/checkout@v2.0.0
-      ref: '${{github.event.inputs.Tag}}'
+      with:
+        ref: '${{github.event.inputs.Tag}}'
       
     - uses: jakejarvis/s3-sync-action@master
       name: Sync Js files
@@ -81,3 +99,12 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
         SOURCE_DIR: 'src'      # optional: defaults to entire repository        
+
+    - name: Invalidate CloudFront
+      uses: chetan/invalidate-cloudfront-action@v2
+      env:
+        DISTRIBUTION: ${DISTRIBUTION} #${{ env.DISTRIBUTION }}
+        PATHS: "/*"
+        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
