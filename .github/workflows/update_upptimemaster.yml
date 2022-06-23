@@ -1,0 +1,41 @@
+name: Update master branch from uptime-status-generator
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [master_update]  
+  schedule:
+  - cron: '5 1 * * *'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Check out
+      uses: actions/checkout@v2
+      with:
+        ref: 'master'
+
+    - name: (GLOBAL) Check out uptime-status-generator repository
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.PAT }}
+        repository: callruby/uptime-status-generator
+        path: uptime-status-generator-master
+        ref: 'master'
+              
+    - name: Push Changes
+      run: |
+        cp -fr uptime-status-generator-master/* .
+        rm -rf uptime-status-generator-master
+        ls -la
+        #if [[ -z "$(git status -s -- README.md)" ]] && [[ -z "$(git status -s -- *.md)" ]]; then
+        #  echo No changes to commit
+        #  exit 0
+        #fi
+        git status
+        git config user.email "check-action@github"
+        git config user.name "check-action"
+        git add *
+        git commit -m "Update all files"
+        git push origin master
