@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
   repository_dispatch:
     types: [ghpages_update]  
-  schedule:
-  - cron: '5 3 * * *'
+  #schedule:
+  #- cron: '5 3 * * *'
 
 jobs:
   check:
@@ -28,6 +28,7 @@ jobs:
       run: |
         cp -fr uptime-status-generator-gh-pages/* .
         rm -rf uptime-status-generator-gh-pages
+        touch .nojekyll
         ls -la
         #if [[ -z "$(git status -s -- README.md)" ]] && [[ -z "$(git status -s -- *.md)" ]]; then
         #  echo No changes to commit
@@ -37,5 +38,6 @@ jobs:
         git config user.email "check-action@github"
         git config user.name "check-action"
         git add *
+        git add .nojekyll
         git commit -m "Update all files"
         git push origin gh-pages
