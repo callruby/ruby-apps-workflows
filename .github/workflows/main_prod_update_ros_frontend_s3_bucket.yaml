@@ -50,6 +50,42 @@ jobs:
       run: |
         chmod +x deploy.sh
         ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}-${Environment}
+        
+    - name: Post to a Slack channel
+      id: slack
+      uses: slackapi/slack-github-action@v1.17.0
+      if: always()
+      with:
+        channel-id: ${{ secrets.SLACK_BOT_CHANNEL }}
+        payload: |
+            {
+              "text": ":github: Update S3 Ros production Bucket - Status: ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":github: Update S3 Ros production Bucket - Status: ${{ job.status }}\n\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                  }
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "Author: <https://github.com/${{ github.event.sender.login }}|@${{ github.event.sender.login }}>"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "Commit Sha: >${{ github.sha }}>"
+                    }
+                  ]
+                }
+              ]
+            }
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}        
 
     # Put a condition to see if the cloudfront invalidation flag is off
     #- name: Invalidate CloudFront
