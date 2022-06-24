@@ -23,7 +23,7 @@ RUN dotnet restore ./${APP}.sln && \
     dotnet publish -c Release -o /app/${APP}/out/ && \
     cp -fr $HOME/.nuget /app/${APP}/out/ && \
     cd ${APP} && \
-    dotnet build ${APP}.csproj && \
+    dotnet build Ruby.Microservices.Partner.Calabrio.csproj && \
     cd ../${APP}.Unit.Tests && \
     dotnet test && \
     cd ../${APP} && \
