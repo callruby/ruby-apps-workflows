@@ -32,7 +32,7 @@ RUN dotnet restore ./Ruby.Microservices.Partner.Calabrio.sln && \
 #----------------------------------------------------------------
 
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1
-ENV APP Ruby.Microservices.Account
+ENV APP Ruby.Microservices.Calabrio
 WORKDIR /app
 
 ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
