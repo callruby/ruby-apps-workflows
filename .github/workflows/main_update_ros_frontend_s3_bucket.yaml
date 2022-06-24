@@ -20,91 +20,60 @@ on:
         type: string
         required: true
         default: ''
-      
-jobs:
 
+jobs:
   init:
     runs-on: self-hosted
     #runs-on: ubuntu-latest #Uncomment if it has to be run on a public Agent
 
     steps:
-    
-    - name: (GLOBAL) Debug
-      run: |
-        echo "Environment: ${{github.event.inputs.Environment}}"
-        echo "Tag: ${{github.event.inputs.Tag}}"
-        case ${{github.event.inputs.Environment}} in
-          1|qa1|Qa1|QA1)
-                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
-          2|qa2|Qa2|QA2)
-                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
-          3|qa3|Qa3|QA3)
-                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
-          4|qa4|Qa4|QA4)
-                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
-          5|qa5|Qa5|QA5)
-                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;
-          6|qa6|Qa6|QA6)
-                DISTRIBUTION="kubeconfig_ruby-eks-sharedeks-jh3gSY9l";;                
-          *)
-                exit 1;;
-        esac
-        echo "DISTRIBUTION=${DISTRIBUTION}" >> $GITHUB_ENV
-    
+            
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 14            
+            
     - uses: actions/checkout@v2.0.0
       with:
         ref: '${{github.event.inputs.Tag}}'
-      
-    - uses: jakejarvis/s3-sync-action@master
-      name: Sync Js files
-      with:
-        args: --exclude "*" --include "*.js" --no-guess-mime-type --content-type "application/javascript; charset=utf-8" --cache-control "public,max-age=31536000"
-      env:
-        AWS_S3_BUCKET: ruby-ros-frontend-${{github.event.inputs.Environment}}
-        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
-        SOURCE_DIR: 'src'      # optional: defaults to entire repository
-        
-    - uses: jakejarvis/s3-sync-action@master
-      name: Sync Css files
-      with:
-        args: --exclude "*" --include "*.css" --no-guess-mime-type --content-type "text/css; charset=utf-8" --cache-control "public,max-age=31536000"
-      env:
-        AWS_S3_BUCKET: ruby-ros-frontend-${{github.event.inputs.Environment}}
-        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
-        SOURCE_DIR: 'src'      # optional: defaults to entire repository
-        
-    - uses: jakejarvis/s3-sync-action@master
-      name: Sync All except index
-      with:
-        args: --exclude "*.js" --exclude "*.css" --exclude "*.html"  --cache-control ""
-      env:
-        AWS_S3_BUCKET: ruby-ros-frontend-${{github.event.inputs.Environment}}
-        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
-        SOURCE_DIR: 'src'      # optional: defaults to entire repository        
-        
 
-    - uses: jakejarvis/s3-sync-action@master
-      name: Sync index
+    - name: Env Setup
+      run: |
+        echo "$(yarn bin)" >> $GITHUB_PATH
+        echo "Environment=${{github.event.inputs.Environment}}" >> $GITHUB_ENV
+        echo "ROS_BUCKET_NAME=${{ secrets.ROS_BUCKET_NAME }}" >> $GITHUB_ENV
+        
+    - name: (GLOBAL) Build
+      run: |
+        yarn install --no-cache --production
+        yarn add @angular/cli@9.0.0
+        npm rebuild node-sass
+        ng build --prod
+        
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
       with:
-        args: --exclude "*" --include "index.html" --cache-control --cache-control "public,max-age=0"
-      env:
-        AWS_S3_BUCKET: ruby-ros-frontend-${{github.event.inputs.Environment}}
-        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
-        SOURCE_DIR: 'src'      # optional: defaults to entire repository        
+        aws-access-key-id: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.S3_OLD_QA_AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
+         
+    - id: install-aws-cli
+      uses: unfor19/install-aws-cli-action@v1.0.3
+      with:
+        version: 2     # default
+        verbose: false # default
+        arch: amd64    # allowed values: amd64, arm64
+  
+    - name: Executing deploy script
+      run: |
+        chmod +x deploy.sh
+        ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}-${Environment}
 
-    - name: Invalidate CloudFront
-      uses: chetan/invalidate-cloudfront-action@v2
-      env:
-        DISTRIBUTION: ${DISTRIBUTION} #${{ env.DISTRIBUTION }}
-        PATHS: "/*"
-        AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
+    # Put a condition to see if the cloudfront invalidation flag is off
+    #- name: Invalidate CloudFront
+    #  uses: chetan/invalidate-cloudfront-action@v2
+    #  env:
+    #    DISTRIBUTION: ${DISTRIBUTION} #${{ env.DISTRIBUTION }}
+    #    PATHS: "/*"
+    #    AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+    #    AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+    #    AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
