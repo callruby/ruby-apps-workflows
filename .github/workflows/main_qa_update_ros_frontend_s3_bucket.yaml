@@ -16,7 +16,7 @@ on:
         - qa5
         - qa6
       Tag:
-        description: 'Commit Tag be deployed Qa1-Qa6'
+        description: 'Branch Name to deploy into Qa1-Qa6'
         type: string
         required: true
         default: ''
@@ -41,6 +41,7 @@ jobs:
         echo "$(yarn bin)" >> $GITHUB_PATH
         echo "Environment=${{github.event.inputs.Environment}}" >> $GITHUB_ENV
         echo "ROS_BUCKET_NAME=${{ secrets.ROS_BUCKET_NAME }}" >> $GITHUB_ENV
+        echo "CONSUL_HTTP_TOKEN=${{ secrets.CONSUL_OLD_QA_HTTP_TOKEN }}" >> $GITHUB_ENV
         
     - name: (GLOBAL) Build
       run: |
@@ -48,6 +49,9 @@ jobs:
         yarn add @angular/cli@9.0.0
         npm rebuild node-sass
         ng build --prod
+        sudo rm -f /usr/local/bin/confd
+        sudo curl https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 -o /usr/local/bin/confd
+        sudo chmod +x /usr/local/bin/confd
         
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -66,8 +70,11 @@ jobs:
     - name: Executing deploy script
       run: |
         chmod +x deploy.sh
+        sudo rm -rf /etc/confd
+        sudo cp -fr confd /etc/confd
+        /usr/local/bin/confd -onetime -backend consul -node ${{secrets.CONSUL_OLD_QA_HTTP_ADDR}} -prefix "appsettings/${{github.event.inputs.Environment}}" -log-level debug
         ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}-${Environment}
-        
+
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
@@ -82,7 +89,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": ":github: Update S3 Ros ${{github.event.inputs.Environment}} Bucket - Status: ${{ job.status }}\n\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                    "text": ":github: Update S3 Ros ${{github.event.inputs.Environment}} Bucket - Status: ${{ job.status }}\n\n${{ github.event.inputs.Tag }}"
                   }
                 },
                 {
@@ -102,7 +109,7 @@ jobs:
             }
       env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}        
+        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     # Put a condition to see if the cloudfront invalidation flag is off
     #- name: Invalidate CloudFront
