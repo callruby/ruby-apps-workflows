@@ -16,6 +16,8 @@ env:
     use_clean_old_commits_reusable.yaml=use_clean_old_commits_reusable.yaml
     main_prod_manual_tag.yaml=main_prod_manual_tag.yaml
     main_branch_updated.yaml=main_branch_updated.yaml
+    main_qa_update_ros_frontend_s3_bucket.yaml=main_qa_update_ros_frontend_s3_bucket.yaml
+    main_prod_update_ros_frontend_s3_bucket.yaml=main_prod_update_ros_frontend_s3_bucket.yaml
   
 #main.yml=main.yml
 #main_pr_closed.yaml=main_pr_closed.yaml
