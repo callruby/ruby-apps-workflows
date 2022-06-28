@@ -49,9 +49,6 @@ jobs:
         yarn add @angular/cli@9.0.0
         npm rebuild node-sass
         ng build --prod
-        sudo rm -f /usr/local/bin/confd
-        sudo curl https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 -o /usr/local/bin/confd
-        sudo chmod +x /usr/local/bin/confd
         
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
@@ -66,13 +63,25 @@ jobs:
         version: 2     # default
         verbose: false # default
         arch: amd64    # allowed values: amd64, arm64
-  
+
+    - name: Get value from consul
+      id: consul
+      uses: blablacar/action-consul-kv@master
+      with:
+        key: appsettings/${{env.Environment}}/rosfrontend
+        host: contsvc01.qa.callruby.online
+        token: ${{ secrets.CONSUL_OLD_QA_HTTP_TOKEN }}
+
     - name: Executing deploy script
       run: |
         chmod +x deploy.sh
-        sudo rm -rf /etc/confd
-        sudo cp -fr confd /etc/confd
-        /usr/local/bin/confd -onetime -backend consul -node ${{secrets.CONSUL_OLD_QA_HTTP_ADDR}} -prefix "appsettings/${{github.event.inputs.Environment}}" -log-level debug
+        sudo rm -f src/config/config.json
+        mkdir -p dist/ros-frontend/config
+        cat <<EOF > dist/ros-frontend/config/config.json
+        "${{ steps.consul.outputs.data }}"
+        EOF
+        #echo "${{ steps.consul.outputs.data }}" > dist/ros-frontend/config/config.json
+        cat dist/ros-frontend/config/config.json
         ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}-${Environment}
 
     - name: Post to a Slack channel
