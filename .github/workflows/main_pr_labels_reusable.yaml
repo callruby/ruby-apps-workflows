@@ -90,10 +90,16 @@ jobs:
 
       - name: (SHARED) Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1 
+        uses: aws-actions/amazon-ecr-login@v1
+        
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}        
       
       - name: (DEV) Build, Test, Tag, Push and Deploy to EKS
-        id: Deploy
+        id: Deploy to Ecr
         run: |
           echo "===================================="
           echo "DEBUG:"
@@ -110,7 +116,7 @@ jobs:
           echo "===================================="
           docker push ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT
           #echo "::set-env name=IMAGE::${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT"
-        
+                  
       - name: (GLOBAL) Check out ruby-apps-deploy repository
         uses: actions/checkout@master
         with:
@@ -125,6 +131,28 @@ jobs:
           PULL_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
           ECR_REPO: 425300134585.dkr.ecr.us-west-1.amazonaws.com
         run: |
+          case $EKS_SERVICE in
+            prl-frontend)
+              ECR_REPO_NAME=prlv2-frontend
+              ;;
+            servicehandling-service)
+              ECR_REPO_NAME=servicehandlingservice
+              ;;
+            prl-webapi)
+              ECR_REPO_NAME=prlv2-webapi
+              ;;
+            identity-service)
+              ECR_REPO_NAME=identity-server
+              ;;
+            employeedirectory-service)
+              ECR_REPO_NAME=employeedirectory
+              ;;                    
+            *)
+              ECR_REPO_NAME=$EKS_SERVICE
+             ;;
+          esac
+          echo "ECR_REPO_NAME=${ECR_REPO_NAME}" >> $GITHUB_ENV        
+        
           if jq --exit-status 'any(test("QA1") or test("QA2") or test("QA3") or test("QA4") or test("QA5") or test("QA6"))' >/dev/null <<< $PULL_LABELS; then
           POSSIBLE_ENVS="QA1 QA2 QA3 QA4 QA5 QA6 "
           for LABEL in $(echo $LABELS | jq -r '.[].name'); do
@@ -142,10 +170,16 @@ jobs:
           git config user.name "check-action"          
           for VAL in $VALUES; do 
             echo "==================================================================================="
-            echo "Updating PR image on the following environments"
+            echo "Updating Environment image on the following environments ( FARGATE )"
             echo $VAL
             echo "==================================================================================="
             VAL=$(echo $VAL | tr '[:upper:]' '[:lower:]' | sed 's,",,g')
+            docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT callrubydev/$ECR_REPO_NAME:$VAL
+            docker push callrubydev/$ECR_REPO_NAME:$VAL
+            echo "==================================================================================="
+            echo "Updating PR image on the following environments ( EKS )"
+            echo $VAL
+            echo "==================================================================================="
             if [ -f "helm/$VAL/${EKS_SERVICE}/values.yaml" ]; then
               #cat helm/$VAL/${EKS_SERVICE}/values.yaml
               sed -i -e "s|image:.*|image: $ECR_REPO/${EKS_SERVICE}:$COMMIT|g" helm/$VAL/${EKS_SERVICE}/values.yaml
