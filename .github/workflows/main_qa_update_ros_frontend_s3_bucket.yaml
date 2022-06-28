@@ -80,7 +80,6 @@ jobs:
         cat <<EOF > dist/ros-frontend/config/config.json
         "${{ steps.consul.outputs.data }}"
         EOF
-        #echo "${{ steps.consul.outputs.data }}" > dist/ros-frontend/config/config.json
         cat dist/ros-frontend/config/config.json
         ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}-${Environment}
 
