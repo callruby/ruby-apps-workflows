@@ -19,26 +19,6 @@ on:
         type: string
         required: true
         default: ''
-    secrets:
-      PAT:
-        required: true
-      GPG_PRIVATE_KEY:
-        required: true
-      GPG_PASSPHRASE:
-        required: true
-      EKS_SERVICE:
-        required: true
-      AWS_DEFAULT_REGION:
-        required: true
-      PFX_CERT:
-        required: true
-      SSL_PEM_CERT:
-        required: true
-      SSL_PEM_KEY:
-        required: true
-      NUGET_CONFIG:
-        required: true
-      
 jobs:
 
   init:
@@ -86,6 +66,16 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-region: us-west-1
+        
+    - name: (SHARED) Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+        
+    - name: Login to Docker Hub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
     
     - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
       id: UpdateTag
@@ -96,9 +86,33 @@ jobs:
         echo "EKS_SERVICE: ${EKS_SERVICE}"
         echo "===================================="
 
-        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com
-                
+        ECR_REPO=425300134585.dkr.ecr.us-west-1.amazonaws.com        
         ENV=${{ github.event.inputs.Environment }}
+        case $EKS_SERVICE in
+          prl-frontend)
+            ECR_REPO_NAME=prlv2-frontend
+            ;;
+          servicehandling-service)
+            ECR_REPO_NAME=servicehandlingservice
+            ;;
+          prl-webapi)
+            ECR_REPO_NAME=prlv2-webapi
+            ;;
+          identity-service)
+            ECR_REPO_NAME=identity-server
+            ;;
+          employeedirectory-service)
+            ECR_REPO_NAME=employeedirectory
+            ;;                    
+          *)
+            ECR_REPO_NAME=$EKS_SERVICE
+           ;;
+        esac
+        echo "ECR_REPO_NAME=${ECR_REPO_NAME}" >> $GITHUB_ENV         
+        
+        docker pull ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${{github.event.inputs.Tag}} 
+        docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${{github.event.inputs.Tag}} callrubydev/$ECR_REPO_NAME:$ENV
+        docker push callrubydev/$ECR_REPO_NAME:$ENV
         
         ls -la ruby-apps-deploy
         cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
