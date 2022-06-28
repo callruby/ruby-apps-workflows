@@ -99,7 +99,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}        
       
       - name: (DEV) Build, Test, Tag, Push and Deploy to EKS
-        id: Deploy to Ecr
+        id: DeploytoEcr
         run: |
           echo "===================================="
           echo "DEBUG:"
