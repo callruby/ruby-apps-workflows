@@ -21,6 +21,10 @@ on:
         required: false
       SLACK_BOT_CHANNEL:
         required: false
+      DOCKERHUB_USERNAME:
+        required: false
+      DOCKERHUB_PASSWORD:
+        required: false
         
 env:
   REPOSITORY: "ruby-apps-deploy"
