@@ -26,3 +26,5 @@ jobs:
       NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
       SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}} 
       SLACK_BOT_CHANNEL: ${{secrets.SLACK_BOT_CHANNEL}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}      
