@@ -78,7 +78,7 @@ jobs:
         sudo rm -f src/config/config.json
         mkdir -p dist/ros-frontend/config
         cat <<EOF > dist/ros-frontend/config/config.json
-        "${{ steps.consul.outputs.data }}"
+        ${{ steps.consul.outputs.data }}
         EOF
         cat dist/ros-frontend/config/config.json
         ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}-${Environment}
