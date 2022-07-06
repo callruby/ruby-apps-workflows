@@ -1,6 +1,8 @@
-FROM mono
+FROM mono:6.12.0.182
 ADD . /src
 WORKDIR /src
+
+RUN apt-get update && apt-get install mono-4.0-service -y
 
 RUN mono nuget.exe restore -configFile Nuget.Config && \
     msbuild Ruby.Microservices.CustomerInformationService.RabbitMQ.sln /restore && \
