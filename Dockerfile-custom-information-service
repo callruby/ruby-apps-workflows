@@ -1,0 +1,9 @@
+FROM mono
+ADD . /src
+WORKDIR /src
+
+RUN mono nuget.exe restore -configFile Nuget.Config && \
+    msbuild Ruby.Microservices.CustomerInformationService.RabbitMQ.sln /restore && \
+    ls -la /src/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug
+
+CMD [ "mono", "/src/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug/Ruby.Microservices.CustomerInformation.RabbitMQ.exe" ]
