@@ -2,12 +2,18 @@ FROM mono:6.12.0.182
 ADD . /src
 WORKDIR /src
 
-RUN apt-get update && apt-get install mono-4.0-service -y
-
-#RUN mono nuget.exe restore -configFile Nuget.Config && \
+RUN apt-get update && apt-get install mono-4.0-service dos2unix -y
 
 RUN /usr/bin/nuget restore -configFile Nuget.Config && \
     msbuild Ruby.Microservices.CustomerInformationService.RabbitMQ.sln /restore && \
     ls -la /src/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug
+    
+ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
+
+#COPY ${APP}/confd /etc/confd
+#RUN chmod +x /etc/confd/start.sh && \
+
+RUN find /etc/confd -type f | xargs dos2unix && apt-get --purge remove -y dos2unix && rm -rf /var/lib/apt/lists/* && \
+    chmod +x /usr/local/bin/confd    
 
 CMD [ "mono-service", "/src/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug/Ruby.Microservices.CustomerInformation.RabbitMQ.exe", "--install", "--no-daemon", "--debug" ]
