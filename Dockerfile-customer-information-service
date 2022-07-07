@@ -4,7 +4,9 @@ WORKDIR /src
 
 RUN apt-get update && apt-get install mono-4.0-service -y
 
-RUN mono nuget.exe restore -configFile Nuget.Config && \
+#RUN mono nuget.exe restore -configFile Nuget.Config && \
+
+RUN /usr/bin/nuget restore -configFile Nuget.Config && \
     msbuild Ruby.Microservices.CustomerInformationService.RabbitMQ.sln /restore && \
     ls -la /src/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug
 
