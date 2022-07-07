@@ -35,8 +35,8 @@ jobs:
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        aws-access-key-id: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.S3_OLD_QA_AWS_SECRET_ACCESS_KEY }}
+        aws-access-key-id: ${{ secrets.S3_OLD_PROD_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.S3_OLD_PROD_AWS_SECRET_ACCESS_KEY }}
         aws-region: us-west-2
          
     - id: install-aws-cli
@@ -45,12 +45,26 @@ jobs:
         version: 2     # default
         verbose: false # default
         arch: amd64    # allowed values: amd64, arm64
+        
+    - name: Get value from consul
+      id: consul
+      uses: blablacar/action-consul-kv@master
+      with:
+        key: appsettings/${{env.Environment}}/rosfrontend
+        host: uw2-p-prl-consul.callruby.online
+        token: ${{ secrets.CONSUL_OLD_PROD_HTTP_TOKEN }}        
   
     - name: Executing deploy script
       run: |
         chmod +x deploy.sh
-        ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}-${Environment}
-        
+        sudo rm -f src/config/config.json
+        mkdir -p dist/ros-frontend/config
+        cat <<EOF > dist/ros-frontend/config/config.json
+        ${{ steps.consul.outputs.data }}
+        EOF
+        cat dist/ros-frontend/config/config.json
+        ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}
+
     - name: Post to a Slack channel
       id: slack
       uses: slackapi/slack-github-action@v1.17.0
@@ -85,7 +99,7 @@ jobs:
             }
       env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}        
+        button_url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     # Put a condition to see if the cloudfront invalidation flag is off
     #- name: Invalidate CloudFront
@@ -93,6 +107,6 @@ jobs:
     #  env:
     #    DISTRIBUTION: ${DISTRIBUTION} #${{ env.DISTRIBUTION }}
     #    PATHS: "/*"
-    #    AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
-    #    AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_OLD_AWS_SECRET_ACCESS_KEY }}
+    #    AWS_ACCESS_KEY_ID: ${{ secrets.S3_OLD_PROD_AWS_ACCESS_KEY_ID }}
+    #    AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_PROD_AWS_SECRET_ACCESS_KEY }}
     #    AWS_REGION: 'us-west-2'   # optional: defaults to us-east-1
