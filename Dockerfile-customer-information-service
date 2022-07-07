@@ -13,7 +13,7 @@ ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.1
 #COPY ${APP}/confd /etc/confd
 #RUN chmod +x /etc/confd/start.sh && \
 
-RUN find /etc/confd -type f | xargs dos2unix && apt-get --purge remove -y dos2unix && rm -rf /var/lib/apt/lists/* && \
+RUN rm -rf /var/lib/apt/lists/* && \
     chmod +x /usr/local/bin/confd    
 
 CMD [ "mono-service", "/src/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug/Ruby.Microservices.CustomerInformation.RabbitMQ.exe", "--install", "--no-daemon", "--debug" ]
