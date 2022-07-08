@@ -17,4 +17,3 @@ RUN chmod +x /etc/confd/start.sh && \
     chmod +x /usr/local/bin/confd    
 
 ENTRYPOINT ["/etc/confd/start.sh"]
-#CMD [ "mono-service", "/app/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug/Ruby.Microservices.CustomerInformation.RabbitMQ.exe", "--install", "--no-daemon", "--debug" ]
