@@ -24,6 +24,9 @@ jobs:
         echo "$(yarn bin)" >> $GITHUB_PATH
         echo "Environment=prod" >> $GITHUB_ENV
         echo "ROS_BUCKET_NAME=${{ secrets.ROS_BUCKET_NAME }}" >> $GITHUB_ENV
+        CONSUL_IP=$(nslookup vpce-06c897dfb198dc918-wdh6o1cr-us-west-1b.vpce-svc-0cc82833fc154867e.us-west-1.vpce.amazonaws.com | grep Address: | awk {'print $2'} | grep -v 172)
+        sudo cp -f /etc/hosts /etc/hosts.bkp
+        echo "$CONSUL_IP prodconsul.callruby.online" | sudo tee -a /etc/hosts        
         
     - name: (GLOBAL) Build
       run: |
@@ -49,20 +52,24 @@ jobs:
     - name: Get value from consul
       id: consul
       uses: blablacar/action-consul-kv@master
+      env:
+        CONSUL_HTTP_SSL_VERIFY: true
       with:
-        key: appsettings/${{env.Environment}}/rosfrontend
-        host: uw2-p-prl-consul.callruby.online
+        key: appsettings/prl-ecs/rosfrontend
+        host: prodconsul.callruby.online #vpce-06c897dfb198dc918-wdh6o1cr-us-west-1b.vpce-svc-0cc82833fc154867e.us-west-1.vpce.amazonaws.com
+        port: 8501
+        scheme: https
         token: ${{ secrets.CONSUL_OLD_PROD_HTTP_TOKEN }}        
   
     - name: Executing deploy script
       run: |
+        sudo cp -f /etc/hosts.bkp /etc/hosts 
         chmod +x deploy.sh
         sudo rm -f src/config/config.json
         mkdir -p dist/ros-frontend/config
         cat <<EOF > dist/ros-frontend/config/config.json
         ${{ steps.consul.outputs.data }}
         EOF
-        cat dist/ros-frontend/config/config.json
         ./deploy.sh 'dist/ros-frontend' ${ROS_BUCKET_NAME}
 
     - name: Post to a Slack channel
