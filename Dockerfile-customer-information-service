@@ -1,6 +1,6 @@
 FROM mono:6.12.0.182
-ADD . /src
-WORKDIR /src
+ADD . /app
+WORKDIR /app
 
 RUN apt-get update && apt-get install mono-4.0-service dos2unix -y
 
