@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install mono-4.0-service dos2unix -y
 
 RUN /usr/bin/nuget restore -configFile Nuget.Config && \
     msbuild Ruby.Microservices.CustomerInformationService.RabbitMQ.sln /restore && \
-    ls -la /src/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug
+    ls -la /app/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug
     
 ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
 
@@ -17,4 +17,4 @@ RUN chmod +x /etc/confd/start.sh && \
     chmod +x /usr/local/bin/confd    
 
 ENTRYPOINT ["/etc/confd/start.sh"]
-#CMD [ "mono-service", "/src/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug/Ruby.Microservices.CustomerInformation.RabbitMQ.exe", "--install", "--no-daemon", "--debug" ]
+#CMD [ "mono-service", "/app/Ruby.Microservices.CustomerInformationService.RabbitMQ/bin/Debug/Ruby.Microservices.CustomerInformation.RabbitMQ.exe", "--install", "--no-daemon", "--debug" ]
