@@ -12,6 +12,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Create repository folder
+        run: |
+          git config --global --add safe.directory /github/workspace        
         
       #- uses: actions/stale@v4
         #with:
