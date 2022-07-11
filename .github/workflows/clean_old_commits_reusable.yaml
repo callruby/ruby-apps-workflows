@@ -12,10 +12,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Create repository folder
-        run: |
-          git config --global --add safe.directory /github/workspace        
         
       #- uses: actions/stale@v4
         #with:
@@ -29,7 +25,7 @@ jobs:
           #days-before-pr-close: 30        
         
       - name: Run delete-old-branches-action
-        uses: beatlabs/delete-old-branches-action@v0.0.6
+        uses: beatlabs/delete-old-branches-action@v0.0.9
         with:
           repo_token: ${{ secrets.PAT }}
           date: '11 months ago'
