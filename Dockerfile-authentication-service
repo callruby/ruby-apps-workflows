@@ -6,7 +6,7 @@ ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.1
 COPY Ruby.Microservices.Authentication.RabbitMQ/confd /etc/confd
 
 RUN apt-get update && apt-get install mono-4.0-service dos2unix -y && \
-    /usr/bin/nuget restore -configFile Nuget.Config Ruby.Microservices.Authentication.RabbitMQ.sln && \
+    /usr/bin/nuget restore Ruby.Microservices.Authentication.RabbitMQ.sln && \ #-configFile Nuget.Config
     msbuild Ruby.Microservices.Authentication.RabbitMQ.sln /restore && \
     ls -la /app/Ruby.Microservices.Authentication.RabbitMQ/bin/Debug
 
