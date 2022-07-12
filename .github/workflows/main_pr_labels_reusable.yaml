@@ -202,7 +202,7 @@ jobs:
             echo "========================================================"
             echo "Retrying...."
             echo "========================================================"
-            set -e
+            #set -e
             sleep 5
             git pull
             git commit -m "Update ${EKS_SERVICE} image to ${COMMIT} on deploy folder/s $VALUES"
