@@ -3,16 +3,16 @@ ADD . /app
 WORKDIR /app
 
 ADD https://github.com/kelseyhightower/confd/releases/download/v0.16.0/confd-0.16.0-linux-amd64 /usr/local/bin/confd
-#COPY Ruby.Microservices.Authentication.WebAPI/confd /etc/confd
+COPY Ruby.Microservices.Authentication.RabbitMQ.sln/confd /etc/confd
 
 RUN apt-get update && apt-get install mono-4.0-service dos2unix -y && \
-    /usr/bin/nuget restore -configFile Nuget.Config Ruby.Microservices.Authentication.WebAPI.sln && \
-    msbuild Ruby.Microservices.Authentication.WebAPI.sln /restore && \
-    ls -la /app/Ruby.Microservices.Authentication.WebAPI/bin/Debug
+    /usr/bin/nuget restore -configFile Nuget.Config Ruby.Microservices.Authentication.RabbitMQ.sln && \
+    msbuild Ruby.Microservices.Authentication.RabbitMQ.sln /restore && \
+    ls -la /app/Ruby.Microservices.Authentication.RabbitMQ/bin/Debug
 
-#RUN chmod +x /etc/confd/start.sh && \
-#    chmod +x /usr/local/bin/confd && \
-#    dos2unix /etc/confd/start.sh && \
-#    rm -rf /var/lib/apt/lists/*
+RUN chmod +x /etc/confd/start.sh && \
+    chmod +x /usr/local/bin/confd && \
+    dos2unix /etc/confd/start.sh && \
+    rm -rf /var/lib/apt/lists/*
 
-#ENTRYPOINT ["/etc/confd/start.sh"]
+ENTRYPOINT ["/etc/confd/start.sh"]
