@@ -124,7 +124,10 @@ jobs:
           echo "Building Docker Image"
           echo "===================================="
           ls -la ruby-apps-workflows/Dockerfile*
-          cp -f ruby-apps-workflows/Dockerfile-${EKS_SERVICE} Dockerfile          
+          cp -f ruby-apps-workflows/Dockerfile-${EKS_SERVICE} Dockerfile
+          echo '${{ secrets.PFX_CERT }}' | base64 --decode >> ssl_cert.pfx
+          echo '${{ secrets.SSL_PEM_CERT }}' | base64 --decode >> ssl_cert.pem
+          echo '${{ secrets.SSL_PEM_KEY }}' | base64 --decode >> ssl_key.pem          
           echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
           docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT --build-arg EKS_SERVICE=${EKS_SERVICE} .
           echo "===================================="
