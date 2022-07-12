@@ -70,13 +70,13 @@ jobs:
           ref: 'master'
     
       #Enforce branch policy
-      - uses: deepakputhraya/action-branch-name@master
-        with:
+      #- uses: deepakputhraya/action-branch-name@master
+        #with:
           #regex: '([a-z])+\/([a-z])+' # Regex the branch should match. This example enforces grouping
-          allowed_prefixes: 'feature,stable,fix,hotfix' # All branches should start with the given prefix
-          ignore: master,develop,dev,release,main # Ignore exactly matching branch names from convention
-          min_length: 5 # Min length of the branch name
-          max_length: 100 # Max length of the branch name
+          #allowed_prefixes: 'feature,stable,fix,hotfix' # All branches should start with the given prefix
+          #ignore: master,develop,dev,release,main # Ignore exactly matching branch names from convention
+          #min_length: 5 # Min length of the branch name
+          #max_length: 100 # Max length of the branch name
         
       #- name: Import GPG key
         #uses: crazy-max/ghaction-import-gpg@v4
