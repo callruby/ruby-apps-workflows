@@ -29,6 +29,7 @@ on:
 env:
   REPOSITORY: "ruby-apps-deploy"
   REPOSITORY_PROJECT: "ruby-project-deploy"
+  REPOSITORY_WORKFLOW: "ruby-apps-workflows"
   AWS_DEFAULT_REGION: "us-west-1"
 
 jobs:
@@ -50,6 +51,15 @@ jobs:
            continue-after-seconds: 500 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: (GLOBAL) Check out ${{env.REPOSITORY_WORKFLOW}} repository
+        uses: actions/checkout@master
+        with:
+          token: ${{ secrets.PAT }}
+          repository: callruby/${{env.REPOSITORY_WORKFLOW}}
+          path: ${{env.REPOSITORY_WORKFLOW}}
+          ref: 'master'
+          fetch-depth: 1          
     
       - name: (GLOBAL) Check out ${{env.REPOSITORY}} repository
         uses: actions/checkout@master
@@ -113,6 +123,8 @@ jobs:
           echo "===================================="
           echo "Building Docker Image"
           echo "===================================="
+          ls -la ruby-apps-workflows/Dockerfile*
+          cp -f ruby-apps-workflows/Dockerfile-${EKS_SERVICE} Dockerfile          
           echo '${{ secrets.NUGET_CONFIG }}' >> NuGet.config
           docker build -t ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT --build-arg EKS_SERVICE=${EKS_SERVICE} .
           echo "===================================="
