@@ -8,7 +8,7 @@ COPY Ruby.Microservices.Partner.Salesforce.RabbitMQ/confd /etc/confd
 RUN apt-get update && apt-get install mono-4.0-service dos2unix -y && \
     /usr/bin/nuget restore -config Nuget.Config Ruby.Microservices.PartnerAPI.Salesforce.RabbitMQ.sln && \
     msbuild Ruby.Microservices.PartnerAPI.Salesforce.RabbitMQ.sln /restore && \
-    ls -la /app/Ruby.Microservices.PartnerAPI.Salesforce.RabbitMQ/bin/Debug
+    ls -la /app/Ruby.Microservices.Partner.Salesforce.RabbitMQ/bin/Debug/
     
 RUN chmod +x /etc/confd/start.sh && \
     chmod +x /usr/local/bin/confd && \ 
