@@ -1,10 +1,10 @@
-name: legacy-salesforce-service Workflow Sync
+name: salesforce-windows-service Workflow Sync
 
 on: [workflow_dispatch]
 env:
   DRY_RUN: false
   REPOSITORIES: |
-    callruby/legacy-salesforce-service@release
+    callruby/salesforce-windows-service@release
     
   WORKFLOW_FILES: |
     main_feature_branch.yaml=main_feature_branch.yaml
