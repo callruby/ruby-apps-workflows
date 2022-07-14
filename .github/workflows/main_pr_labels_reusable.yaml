@@ -147,7 +147,7 @@ jobs:
           path: ruby-apps-deploy
           ref: 'master'
             
-      - name: Configure AWS Credentials
+      - name: (QA) Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
