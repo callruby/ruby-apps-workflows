@@ -233,7 +233,7 @@ jobs:
               echo "===================================================================================================="
               echo "Waiting for the deployment on ECS "
               echo "===================================================================================================="  
-              aws ecs wait services-stable --cluster "${$ECS_QA_CLUSTER_NAME}" --services "${ECS_QA_SERVICE_NAME}_${VAL}" --region us-west-2
+              aws ecs wait services-stable --cluster "${ECS_QA_CLUSTER_NAME}" --services "${ECS_QA_SERVICE_NAME}_${VAL}" --region us-west-2
             else
               echo "===================================================================================================="
               echo "Ignore deploy to ECS: ${DEPLOY_TO_ECS}"
