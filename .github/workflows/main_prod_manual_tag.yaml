@@ -68,7 +68,10 @@ jobs:
             ;;
           employeedirectory-service)
             ECR_REPO_NAME=employeedirectory
-            ;;                    
+            ;;
+          prl-authentication-service)
+            ECR_REPO_NAME=newprl-auth-service
+            ;;            
           *)
             ECR_REPO_NAME=$EKS_SERVICE
            ;;
