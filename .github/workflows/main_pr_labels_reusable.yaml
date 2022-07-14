@@ -31,6 +31,10 @@ on:
         required: false
       ECS_QA_SERVICE_NAME:
         required: false
+      S3_OLD_QA_AWS_ACCESS_KEY_ID:
+        required: false
+      S3_OLD_QA_AWS_SECRET_ACCESS_KEY:
+        required: false
                 
 env:
   REPOSITORY: "ruby-apps-deploy"
