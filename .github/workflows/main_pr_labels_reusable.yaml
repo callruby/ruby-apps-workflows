@@ -25,6 +25,8 @@ on:
         required: false
       DOCKERHUB_PASSWORD:
         required: false
+      DEPLOY_TO_ECS:
+        required: false
         
 env:
   REPOSITORY: "ruby-apps-deploy"
