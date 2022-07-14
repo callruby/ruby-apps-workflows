@@ -27,7 +27,11 @@ on:
         required: false
       DEPLOY_TO_ECS:
         required: false
-        
+      ECS_QA_CLUSTER_NAME:
+        required: false
+      ECS_QA_SERVICE_NAME:
+        required: false
+                
 env:
   REPOSITORY: "ruby-apps-deploy"
   REPOSITORY_PROJECT: "ruby-project-deploy"
