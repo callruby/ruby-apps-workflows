@@ -32,4 +32,6 @@ jobs:
       SSL_PEM_KEY: ${{secrets.SSL_PEM_KEY}}
       NUGET_CONFIG: ${{secrets.NUGET_CONFIG}}
       DEPLOY_TO_ECS: ${{secrets.DEPLOY_TO_ECS}}
+      ECS_QA_CLUSTER_NAME: ${{secrets.ECS_QA_CLUSTER_NAME}}
+      ECS_QA_SERVICE_NAME: ${{secrets.ECS_QA_SERVICE_NAME}}
       APPROVERS: "" # comma list of users that has to be added as pr reviewers 
