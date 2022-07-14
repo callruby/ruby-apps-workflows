@@ -211,7 +211,8 @@ jobs:
             echo "==================================================================================="
             VAL=$(echo $VAL | tr '[:upper:]' '[:lower:]' | sed 's,",,g')
             docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT callrubydev/$ECR_REPO_NAME:$VAL
-            docker push callrubydev/$ECR_REPO_NAME:$VAL            
+            docker push callrubydev/$ECR_REPO_NAME:$VAL
+            echo "$DEPLOY_TO_ECS"
             if [[ "$DEPLOY_TO_ECS" == "true" ]]; then
               echo "===================================================================================================="
               echo "Deploying to ECS: ${ECS_QA_SERVICE_NAME}_${VAL}"
@@ -224,7 +225,7 @@ jobs:
               aws ecs wait services-stable --cluster $ECS_QA_CLUSTER_NAME --services "${ECS_QA_SERVICE_NAME}_${VAL}" 
             else
               echo "===================================================================================================="
-              echo "Ignore deploy to ECS"
+              echo "Ignore deploy to ECS: ${DEPLOY_TO_ECS}"
               echo "===================================================================================================="  
             fi
             echo "==================================================================================="
