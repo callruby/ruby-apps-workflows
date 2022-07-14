@@ -96,7 +96,8 @@ jobs:
         run: |
           echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
           echo "ECS_QA_CLUSTER_NAME=${{secrets.ECS_QA_CLUSTER_NAME}}" >> $GITHUB_ENV
-          echo "ECS_QA_SERVICE_NAME=${{secrets.ECS_QA_SERVICE_NAME}}" >> $GITHUB_ENV
+          #echo "ECS_QA_SERVICE_NAME=${{secrets.ECS_QA_SERVICE_NAME}}" >> $GITHUB_ENV
+          echo "ECS_QA_SERVICE_NAME=uw2-q-prl-services" >> $GITHUB_ENV
           echo "DEPLOY_TO_ECS=${{secrets.DEPLOY_TO_ECS}}" >> $GITHUB_ENV
           TOK=$(echo U2FsdGVkX1+quT9qjFncsdkCMVjo8ghWacdeqPOooL1p1i930rQL88mso6ek8TQV047H4m1rPLrkHs4iOcrVIRvcvuvEwArP2ZzP8/5IyKUXlQ9csJtWDx82PFbbgB+B | openssl enc -aes256 -base64 -d -k ${{secrets.GPG_PASSPHRASE}}| grep xox)
           echo "SLTOK=$(echo $TOK)" >> $GITHUB_ENV          
