@@ -71,6 +71,9 @@ jobs:
             ;;
           prl-authentication-service)
             ECR_REPO_NAME=newprl-auth-service
+            ;;
+          spoofing)
+            ECR_REPO_NAME=spoofing-service
             ;;            
           *)
             ECR_REPO_NAME=$EKS_SERVICE
