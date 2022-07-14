@@ -38,6 +38,9 @@ jobs:
     - name: (GLOBAL) Configure Service name.
       run: |
         echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+        echo "ECS_QA_CLUSTER_NAME=${{secrets.ECS_QA_CLUSTER_NAME}}" >> $GITHUB_ENV
+        echo "ECS_QA_SERVICE_NAME=${{secrets.ECS_QA_SERVICE_NAME}}" >> $GITHUB_ENV
+        echo "DEPLOY_TO_ECS=${{secrets.DEPLOY_TO_ECS}}" >> $GITHUB_ENV        
         echo "AWS_WEB_IDENTITY_TOKEN_FILE=" >> $GITHUB_ENV
         
     - name: (GLOBAL) Debug
@@ -62,7 +65,7 @@ jobs:
         
     - uses: imranismail/setup-kustomize@v1
     
-    - name: Configure AWS Credentials
+    - name: (GLOBAL) Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-region: us-west-1
@@ -76,8 +79,33 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        
+    - name: (DEV) Check if the docker image tag exist
+      id: CheckTag
+      run: |
+        echo "===================================="
+        echo "DEBUG:"
+        echo "IMAGE_TAG: ${{github.event.inputs.Tag}}"
+        echo "EKS_SERVICE: ${EKS_SERVICE}"
+        echo "===================================="
+        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        echo "IMAGE_EXIST=${IMAGE_EXIST}" >> $GITHUB_ENV         
+        
+    - name: (QA) Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.S3_OLD_QA_AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
+           
+    - id: install-aws-cli
+      uses: unfor19/install-aws-cli-action@v1.0.3
+      with:
+        version: 2     # default
+        verbose: false # default
+        arch: amd64    # allowed values: amd64, arm64        
     
-    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD
+    - name: (DEV) Update Tag - Deploy to EKS through ArgoCD and ECS
       id: UpdateTag
       run: |
         echo "===================================="
@@ -113,11 +141,25 @@ jobs:
         docker pull ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${{github.event.inputs.Tag}} 
         docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:${{github.event.inputs.Tag}} callrubydev/$ECR_REPO_NAME:$ENV
         docker push callrubydev/$ECR_REPO_NAME:$ENV
-        
+        if [[ "$DEPLOY_TO_ECS" == "true" ]]; then
+          echo "===================================================================================================="
+          echo "Deploying to ECS: ${ECS_QA_SERVICE_NAME}_${VAL}"
+          echo "===================================================================================================="
+          aws ecs update-service --cluster $ECS_QA_CLUSTER_NAME --service "${ECS_QA_SERVICE_NAME}_${VAL}" --force-new-deployment
+          sleep 3
+          echo "===================================================================================================="
+          echo "Waiting for the deployment on ECS "
+          echo "===================================================================================================="  
+          aws ecs wait services-stable --cluster $ECS_QA_CLUSTER_NAME --services "${ECS_QA_SERVICE_NAME}_${VAL}" 
+        else
+          echo "===================================================================================================="
+          echo "Ignore deploy to ECS"
+          echo "===================================================================================================="  
+        fi        
         ls -la ruby-apps-deploy
         cd ruby-apps-deploy/helm/$ENV/$EKS_SERVICE
         ls -la
-        IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
+        #IMAGE_EXIST=$(aws ecr batch-get-image --repository-name=${EKS_SERVICE} --image-ids=imageTag=${{github.event.inputs.Tag}} --query 'images[].imageId.imageTag' --output text)
         if [[ -n "$IMAGE_EXIST" ]]; then
           echo "================================================================================"
           echo "Image exist on ECR!!!!!!!!!"
