@@ -89,6 +89,9 @@ jobs:
       - name: (GLOBAL) Debug
         run: |
           echo "EKS_SERVICE=${{secrets.EKS_SERVICE}}" >> $GITHUB_ENV
+          echo "ECS_QA_CLUSTER_NAME=${{secrets.ECS_QA_CLUSTER_NAME}}" >> $GITHUB_ENV
+          echo "ECS_QA_SERVICE_NAME=${{secrets.ECS_QA_SERVICE_NAME}}" >> $GITHUB_ENV
+          echo "DEPLOY_TO_ECS=${{secrets.DEPLOY_TO_ECS}}" >> $GITHUB_ENV
           TOK=$(echo U2FsdGVkX1+quT9qjFncsdkCMVjo8ghWacdeqPOooL1p1i930rQL88mso6ek8TQV047H4m1rPLrkHs4iOcrVIRvcvuvEwArP2ZzP8/5IyKUXlQ9csJtWDx82PFbbgB+B | openssl enc -aes256 -base64 -d -k ${{secrets.GPG_PASSPHRASE}}| grep xox)
           echo "SLTOK=$(echo $TOK)" >> $GITHUB_ENV          
     
@@ -142,7 +145,21 @@ jobs:
           token: ${{ secrets.PAT }}
           repository: callruby/ruby-apps-deploy
           path: ruby-apps-deploy
-          ref: 'master'    
+          ref: 'master'
+            
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.S3_OLD_QA_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.S3_OLD_QA_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+           
+      - id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@v1.0.3
+        with:
+          version: 2     # default
+          verbose: false # default
+          arch: amd64    # allowed values: amd64, arm64          
     
       - name: Check if a valid Environment is set and deploy the pr image
         env:
@@ -194,7 +211,22 @@ jobs:
             echo "==================================================================================="
             VAL=$(echo $VAL | tr '[:upper:]' '[:lower:]' | sed 's,",,g')
             docker tag ${{ steps.login-ecr.outputs.registry }}/${EKS_SERVICE}:$COMMIT callrubydev/$ECR_REPO_NAME:$VAL
-            docker push callrubydev/$ECR_REPO_NAME:$VAL
+            docker push callrubydev/$ECR_REPO_NAME:$VAL            
+            if [[ "$DEPLOY_TO_ECS" == "true" ]]; then
+              echo "===================================================================================================="
+              echo "Deploying to ECS: ${ECS_QA_SERVICE_NAME}_${VAL}"
+              echo "===================================================================================================="
+              aws ecs update-service --cluster $ECS_QA_CLUSTER_NAME --service "${ECS_QA_SERVICE_NAME}_${VAL}" --force-new-deployment
+              sleep 3
+              echo "===================================================================================================="
+              echo "Waiting for the deployment on ECS "
+              echo "===================================================================================================="  
+              aws ecs wait services-stable --cluster $ECS_QA_CLUSTER_NAME --services "${ECS_QA_SERVICE_NAME}_${VAL}" 
+            else
+              echo "===================================================================================================="
+              echo "Ignore deploy to ECS"
+              echo "===================================================================================================="  
+            fi
             echo "==================================================================================="
             echo "Updating PR image on the following environments ( EKS )"
             echo $VAL
