@@ -146,14 +146,14 @@ jobs:
         docker push callrubydev/$ECR_REPO_NAME:$ENV
         if [[ "$DEPLOY_TO_ECS" == "true" ]]; then
           echo "===================================================================================================="
-          echo "Deploying to ECS: ${ECS_QA_SERVICE_NAME}_${VAL}"
+          echo "Deploying to ECS: ${ECS_QA_SERVICE_NAME}_${ENV}"
           echo "===================================================================================================="
-          aws ecs update-service --cluster "${ECS_QA_CLUSTER_NAME}" --service "${ECS_QA_SERVICE_NAME}_${VAL}" --force-new-deployment --region us-west-2
+          aws ecs update-service --cluster "${ECS_QA_CLUSTER_NAME}" --service "${ECS_QA_SERVICE_NAME}_${ENV}" --force-new-deployment --region us-west-2
           sleep 3
           echo "===================================================================================================="
           echo "Waiting for the deployment on ECS "
           echo "===================================================================================================="  
-          aws ecs wait services-stable --cluster "${ECS_QA_CLUSTER_NAME}" --services "${ECS_QA_SERVICE_NAME}_${VAL}" --region us-west-2 
+          aws ecs wait services-stable --cluster "${ECS_QA_CLUSTER_NAME}" --services "${ECS_QA_SERVICE_NAME}_${ENV}" --region us-west-2 
         else
           echo "===================================================================================================="
           echo "Ignore deploy to ECS"
