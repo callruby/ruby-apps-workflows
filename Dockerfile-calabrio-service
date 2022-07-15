@@ -19,7 +19,7 @@ RUN dotnet nuget locals --clear all && \
     /d:sonar.host.url="$SONAR_HOST_URL" \
     /d:sonar.login="$SONAR_TOKEN"
     
-RUN dotnet restore ./Ruby.Microservices.Partner.Calabrio.sln && \
+RUN dotnet restore ./Ruby.Microservices.Calabrio.sln && \
     dotnet publish -c Release -o /app/${APP}/out/ && \
     cp -fr $HOME/.nuget /app/${APP}/out/ && \
     cd ${APP} && \
