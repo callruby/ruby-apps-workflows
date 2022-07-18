@@ -1,0 +1,15 @@
+name: Auto approve pipeline changes
+
+on:
+  pull_request
+
+jobs:
+  auto-approve:
+    runs-on: self-hosted
+    permissions:
+      pull-requests: write
+    steps:
+    - uses: hmarr/auto-approve-action@v2
+      if: github.actor == 'fbuinosquy1985'
+      with:
+        github-token: ${{ secrets.PAT }}
