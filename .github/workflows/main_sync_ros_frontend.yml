@@ -17,6 +17,7 @@ env:
     main_prod_manual_tag.yaml=main_prod_manual_tag.yaml
     main_branch_updated.yaml=main_branch_updated.yaml
     main_qa_update_ros_frontend_s3_bucket.yaml=main_qa_update_ros_frontend_s3_bucket.yaml
+    pipelines_pr_auto_approver.yaml=pipelines_pr_auto_approver.yaml
     main_prod_update_ros_frontend_s3_bucket.yaml=main_prod_update_ros_frontend_s3_bucket.yaml
   
 #main.yml=main.yml

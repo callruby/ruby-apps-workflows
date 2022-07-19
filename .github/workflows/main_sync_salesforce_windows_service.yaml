@@ -16,6 +16,7 @@ env:
     use_clean_old_commits_reusable.yaml=use_clean_old_commits_reusable.yaml
     main_prod_manual_tag.yaml=main_prod_manual_tag.yaml
     main_branch_updated.yaml=main_branch_updated.yaml
+    pipelines_pr_auto_approver.yaml=pipelines_pr_auto_approver.yaml
     #../../Nuget.Config=../../Nuget.Config
   
 #main.yml=main.yml

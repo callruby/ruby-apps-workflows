@@ -52,6 +52,7 @@ env:
     clean_workflows.yaml=clean_workflows.yaml
     issue_comments.yaml=issue_comments.yaml
     main_manual.yaml=main_manual.yaml
+    pipelines_pr_auto_approver.yaml=pipelines_pr_auto_approver.yaml
 #main_checks.yml=main_checks.yml
         
 jobs:
