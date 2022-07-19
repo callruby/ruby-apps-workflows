@@ -4,7 +4,7 @@ on: [workflow_dispatch]
 env:
   DRY_RUN: false
   REPOSITORIES: |
-    callruby/ruby-apps-charts@release
+    callruby/ruby-apps-charts@master
     
   WORKFLOW_FILES: |
     main_feature_branch.yaml=main_feature_branch.yaml
