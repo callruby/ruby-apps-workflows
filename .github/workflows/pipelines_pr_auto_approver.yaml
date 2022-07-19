@@ -6,6 +6,7 @@ on:
 jobs:
   auto-approve:
     runs-on: self-hosted
+    if: "contains(github.event.head_commit.message, 'Files Sync From callruby/ruby-apps-workflows')"
     permissions:
       pull-requests: write
     steps:
