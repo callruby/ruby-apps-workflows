@@ -1,0 +1,27 @@
+name: PullRequest Workflow Sync
+
+on: [workflow_dispatch]
+env:
+  DRY_RUN: false
+  REPOSITORIES: |
+    callruby/ruby-apps-charts@release
+    
+  WORKFLOW_FILES: |
+    main_feature_branch.yaml=main_feature_branch.yaml
+          
+jobs:
+  Github_Workflow_Sync:
+    #runs-on: self-hosted
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetching Local Repository
+        uses: actions/checkout@master
+      - name: Running Workflow Sync
+        uses: varunsridharan/action-github-workflow-sync@main
+        with:
+          DRY_RUN: ${{ env.DRY_RUN }}
+          REPOSITORIES: ${{ env.REPOSITORIES }}
+          WORKFLOW_FILES: ${{ env.WORKFLOW_FILES }}
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          PULL_REQUEST: true
+          AUTO_CREATE_NEW_BRANCH: false
