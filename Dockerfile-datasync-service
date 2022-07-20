@@ -1,5 +1,5 @@
-#FROM mcr.microsoft.com/dotnet/core/sdk:2.2.402 AS builder
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2.402 AS builder
+#FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS builder
 ENV APP Ruby.Microservices.DataSync
 ENV PATH="$PATH:/root/.dotnet/tools"
 
@@ -8,8 +8,8 @@ ARG SONAR_HOST_URL=http://sonarqube-sonarqube.default.svc.cluster.local:9000
 ARG SONAR_TOKEN=1b8f2a7b1cea7e6883a8efcdd9799d643bb63d20
 
 WORKDIR /app
-#openjdk-8-jre
-RUN apt-get update && apt-get install -y openjdk-11-jdk && \
+#openjdk-8-jre openjdk-11-jdk
+RUN apt-get update && apt-get install -y openjdk-8-jre && \
     dotnet tool install --global dotnet-sonarscanner
 
 COPY . ./
@@ -31,9 +31,9 @@ RUN dotnet restore ./${APP}.sln && \
     cp -fr $HOME/.nuget /app/${APP}/out/
 #----------------------------------------------------------------
 
-#FROM mcr.microsoft.com/dotnet/aspnet:2.1
+FROM mcr.microsoft.com/dotnet/aspnet:2.1
 
-FROM mcr.microsoft.com/dotnet/core/runtime:3.1
+#FROM mcr.microsoft.com/dotnet/core/runtime:3.1
 ENV APP Ruby.Microservices.DataSync
 WORKDIR /app
 
